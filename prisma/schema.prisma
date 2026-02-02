@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  user_id    Int      @id @default(autoincrement())
+  nama       String
+  email      String   @unique
+  password   String
+  role       String
+  created_at DateTime @default(now())
+
+  pemesanan        Pemesanan[]
+  hasilRekomendasi HasilRekomendasi[]
+}
+
+model CabangOlahraga {
+  cabor_id   Int      @id @default(autoincrement())
+  nama_cabor String
+
+  pelatih   Pelatih[]
+  pemesanan Pemesanan[]
+}
+
+model Pelatih {
+  pelatih_id        Int      @id @default(autoincrement())
+  nama              String
+  cabor_id          Int
+  pengalaman        Int
+  biaya             Int
+  ketersediaan_waktu String
+  status_verifikasi String
+  created_at        DateTime @default(now())
+
+  cabang  CabangOlahraga @relation(fields: [cabor_id], references: [cabor_id])
+  nilai   NilaiPelatih[]
+  pemesanan Pemesanan[]
+  hasilRekomendasi HasilRekomendasi[]
+}
+
+model Kriteria {
+  kriteria_id  Int    @id @default(autoincrement())
+  kode         String
+  nama_kriteria String
+  tipe         String
+
+  nilai     NilaiPelatih[]
+  bobotRoc  BobotRoc?
+}
+
+model BobotRoc {
+  roc_id     Int     @id @default(autoincrement())
+  kriteria_id Int    @unique
+  peringkat  Int
+  bobot      Float
+
+  kriteria Kriteria @relation(fields: [kriteria_id], references: [kriteria_id])
+}
+
+model NilaiPelatih {
+  nilai_id    Int   @id @default(autoincrement())
+  pelatih_id  Int
+  kriteria_id Int
+  nilai       Float
+
+  pelatih  Pelatih  @relation(fields: [pelatih_id], references: [pelatih_id])
+  kriteria Kriteria @relation(fields: [kriteria_id], references: [kriteria_id])
+
+  @@unique([pelatih_id, kriteria_id])
+}
+
+model Pemesanan {
+  pemesanan_id Int      @id @default(autoincrement())
+  user_id      Int
+  cabor_id     Int
+  pelatih_id   Int?
+  status       String
+  tanggal      DateTime @default(now())
+
+  user    User           @relation(fields: [user_id], references: [user_id])
+  cabang  CabangOlahraga @relation(fields: [cabor_id], references: [cabor_id])
+  pelatih Pelatih?       @relation(fields: [pelatih_id], references: [pelatih_id])
+}
+
+model HasilRekomendasi {
+  rekomendasi_id Int      @id @default(autoincrement())
+  user_id        Int
+  pelatih_id     Int
+  skor_akhir     Float
+  peringkat      Int
+  tanggal        DateTime @default(now())
+
+  user    User    @relation(fields: [user_id], references: [user_id])
+  pelatih Pelatih @relation(fields: [pelatih_id], references: [pelatih_id])
+}
