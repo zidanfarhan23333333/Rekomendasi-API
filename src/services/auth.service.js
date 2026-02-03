@@ -1,8 +1,8 @@
 // Business logic for authentication
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const prisma = require("../config/database");
-const jwtConfig = require("../config/jwt");
+const prisma = require("../config/database.js");
+const jwtConfig = require("../config/jwt.js");
 
 class AuthService {
   /**

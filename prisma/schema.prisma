@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,54 +12,60 @@ model User {
   nama       String
   email      String   @unique
   password   String
-  role       String
+  role       String   // "admin" | "user"
   created_at DateTime @default(now())
 
   pemesanan        Pemesanan[]
   hasilRekomendasi HasilRekomendasi[]
+  @@map("user")
 }
 
 model CabangOlahraga {
-  cabor_id   Int      @id @default(autoincrement())
-  nama_cabor String
+  cabor_id   Int    @id @default(autoincrement())
+  nama_cabor String @unique
 
   pelatih   Pelatih[]
   pemesanan Pemesanan[]
+  @@map("cabangolahraga")
 }
 
 model Pelatih {
-  pelatih_id        Int      @id @default(autoincrement())
-  nama              String
-  cabor_id          Int
-  pengalaman        Int
-  biaya             Int
-  ketersediaan_waktu String
-  status_verifikasi String
-  created_at        DateTime @default(now())
+  pelatih_id         Int      @id @default(autoincrement())
+  nama               String
+  cabor_id           Int
+  pengalaman         Int      
+  sertifikat         Int     
+  biaya              Int      
+  ketersediaan_waktu Boolean  
+  status_verifikasi  String  
+  created_at         DateTime @default(now())
 
-  cabang  CabangOlahraga @relation(fields: [cabor_id], references: [cabor_id])
-  nilai   NilaiPelatih[]
-  pemesanan Pemesanan[]
+  cabang           CabangOlahraga   @relation(fields: [cabor_id], references: [cabor_id])
+  nilai            NilaiPelatih[]
+  pemesanan        Pemesanan[]
   hasilRekomendasi HasilRekomendasi[]
+  @@map("pelatih")
 }
 
 model Kriteria {
-  kriteria_id  Int    @id @default(autoincrement())
-  kode         String
+  kriteria_id   Int    @id @default(autoincrement())
+  kode          String @unique   
   nama_kriteria String
-  tipe         String
+  tipe          String           
 
-  nilai     NilaiPelatih[]
-  bobotRoc  BobotRoc?
+  nilai    NilaiPelatih[]
+  bobotRoc BobotRoc?
+  @@map("kriteria")
 }
 
 model BobotRoc {
-  roc_id     Int     @id @default(autoincrement())
-  kriteria_id Int    @unique
-  peringkat  Int
-  bobot      Float
+  roc_id      Int   @id @default(autoincrement())
+  kriteria_id Int   @unique
+  peringkat   Int
+  bobot       Float
 
   kriteria Kriteria @relation(fields: [kriteria_id], references: [kriteria_id])
+  @@map("bobotroc")
 }
 
 model NilaiPelatih {
@@ -71,6 +78,7 @@ model NilaiPelatih {
   kriteria Kriteria @relation(fields: [kriteria_id], references: [kriteria_id])
 
   @@unique([pelatih_id, kriteria_id])
+  @@map("nilaipelatih")
 }
 
 model Pemesanan {
@@ -78,12 +86,13 @@ model Pemesanan {
   user_id      Int
   cabor_id     Int
   pelatih_id   Int?
-  status       String
+  status       String   // "pending"|"konfirmasi"|"dibatalkan"
   tanggal      DateTime @default(now())
 
   user    User           @relation(fields: [user_id], references: [user_id])
   cabang  CabangOlahraga @relation(fields: [cabor_id], references: [cabor_id])
   pelatih Pelatih?       @relation(fields: [pelatih_id], references: [pelatih_id])
+  @@map("pemesanan")
 }
 
 model HasilRekomendasi {
@@ -96,4 +105,5 @@ model HasilRekomendasi {
 
   user    User    @relation(fields: [user_id], references: [user_id])
   pelatih Pelatih @relation(fields: [pelatih_id], references: [pelatih_id])
+  @@map("hasilrekomendasi")
 }
