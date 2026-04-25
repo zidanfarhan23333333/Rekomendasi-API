@@ -30,17 +30,17 @@ model CabangOlahraga {
 }
 
 model Pelatih {
-  pelatih_id         Int      @id @default(autoincrement())
-  nama               String
-  cabor_id           Int
-  pengalaman         Int      
-  sertifikat         Int     
-  biaya              Int      
-  ketersediaan_waktu Boolean  
-  status_verifikasi  String  
-  created_at         DateTime @default(now())
+  pelatih_id        Int      @id @default(autoincrement())
+  nama              String
+  cabor_id          Int
+  pengalaman        Int      // skala 1-5
+  lisensi           Int      // skala 1-5
+  prestasi          Int      // skala 1-5
+  biaya             Int      // skala 1-5 (cost: 5=sangat terjangkau, 1=sangat mahal)
+  status_verifikasi String
+  created_at        DateTime @default(now())
 
-  cabang           CabangOlahraga   @relation(fields: [cabor_id], references: [cabor_id])
+  cabang           CabangOlahraga    @relation(fields: [cabor_id], references: [cabor_id])
   nilai            NilaiPelatih[]
   pemesanan        Pemesanan[]
   hasilRekomendasi HasilRekomendasi[]
@@ -49,23 +49,12 @@ model Pelatih {
 
 model Kriteria {
   kriteria_id   Int    @id @default(autoincrement())
-  kode          String @unique   
+  kode          String @unique
   nama_kriteria String
-  tipe          String           
+  tipe          String
 
-  nilai    NilaiPelatih[]
-  bobotRoc BobotRoc?
+  nilai NilaiPelatih[]
   @@map("kriteria")
-}
-
-model BobotRoc {
-  roc_id      Int   @id @default(autoincrement())
-  kriteria_id Int   @unique
-  peringkat   Int
-  bobot       Float
-
-  kriteria Kriteria @relation(fields: [kriteria_id], references: [kriteria_id])
-  @@map("bobotroc")
 }
 
 model NilaiPelatih {

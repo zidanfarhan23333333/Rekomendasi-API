@@ -8,7 +8,6 @@ const cors = require("cors");
 
 const errorHandler = require("./middleware/error.handler.js");
 const ahpRoutes = require("./routes/ahp.routes.js");
-const rocRoutes = require("./routes/roc.routes.js");
 const rekomendasiRoutes = require("./routes/rekomendasi.routes.js");
 const pelatihRoutes = require("./routes/pelatih.routes.js");
 
@@ -28,7 +27,6 @@ app.use((req, res, next) => {
 });
 
 app.use("/api/ahp", ahpRoutes);
-app.use("/api/roc", rocRoutes);
 app.use("/api/rekomendasi", rekomendasiRoutes);
 app.use("/api/pelatih", pelatihRoutes);
 

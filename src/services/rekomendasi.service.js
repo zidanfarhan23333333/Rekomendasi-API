@@ -4,14 +4,13 @@ const prisma = require("../config/database.js");
 const { KRITERIA } = require("../constants/ahpConstants.js");
 const { hitungBobotAHP } = require("./ahp.service.js");
 const { normalisasi, hitungSkorAkhir } = require("./normalisasi.service.js");
-const { tentukanRanking, hitungBobotROC } = require("./roc.service.js");
 
 function mapPelatihKeNilai(pelatih) {
   return [
     pelatih.pengalaman,
-    pelatih.sertifikat,
+    pelatih.lisensi,
+    pelatih.prestasi,
     pelatih.biaya,
-    pelatih.ketersediaan_waktu ? 1 : 0,
   ];
 }
 
@@ -25,9 +24,9 @@ async function dapatkanRekomendasi({ cabor_id, user_id }) {
       pelatih_id: true,
       nama: true,
       pengalaman: true,
-      sertifikat: true,
+      lisensi: true,
+      prestasi: true,
       biaya: true,
-      ketersediaan_waktu: true,
     },
   });
 
@@ -43,14 +42,9 @@ async function dapatkanRekomendasi({ cabor_id, user_id }) {
   }));
 
   const ahpResult = hitungBobotAHP();
-  const rankings = tentukanRanking(ahpResult.bobotAHP);
-
-  const n = KRITERIA.length;
-  const bobotROC = hitungBobotROC(n, rankings);
-
   const tipeKriteria = KRITERIA.map((k) => k.tipe);
   const dataNormalisasi = normalisasi(pelatihArr, tipeKriteria);
-  const hasil = hitungSkorAkhir(dataNormalisasi, bobotROC);
+  const hasil = hitungSkorAkhir(dataNormalisasi, ahpResult.bobotAHP);
 
   await Promise.all(
     hasil.map((item) =>
@@ -76,13 +70,14 @@ async function dapatkanRekomendasi({ cabor_id, user_id }) {
 
   const meta = {
     ahp: {
-      bobotAHP: ahpResult.bobotAHP.map((v) => parseFloat(v.toFixed(4))),
+      kriteria: KRITERIA.map((k, i) => ({
+        kode: k.kode,
+        nama: k.nama,
+        tipe: k.tipe,
+        bobot: parseFloat(ahpResult.bobotAHP[i].toFixed(4)),
+      })),
       CR: parseFloat(ahpResult.CR.toFixed(4)),
       konsistensi: ahpResult.konsistensi,
-    },
-    roc: {
-      rankings,
-      bobotROC: bobotROC.map((v) => parseFloat(v.toFixed(4))),
     },
   };
 

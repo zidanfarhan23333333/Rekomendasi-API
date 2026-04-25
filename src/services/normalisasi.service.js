@@ -29,9 +29,9 @@ function normalisasi(pelatihArr, tipeKriteria) {
   });
 }
 
-function hitungSkorAkhir(dataSimulasi, bobotROC) {
+function hitungSkorAkhir(dataSimulasi, bobot) {
   const hasil = dataSimulasi.map(({ pelatih_id, normalized }) => {
-    const skor = normalized.reduce((sum, val, i) => sum + val * bobotROC[i], 0);
+    const skor = normalized.reduce((sum, val, i) => sum + val * bobot[i], 0);
     return { pelatih_id, skor_akhir: parseFloat(skor.toFixed(4)) };
   });
 

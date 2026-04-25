@@ -10,12 +10,21 @@ function createError(code, message) {
   return err;
 }
 
+function validasiSkala(nilai, nama) {
+  if (
+    nilai === undefined ||
+    !Number.isInteger(Number(nilai)) ||
+    Number(nilai) < 1 ||
+    Number(nilai) > 5
+  ) {
+    throw createError("VALIDATION", `${nama} wajib dan harus angka bulat 1-5`);
+  }
+}
+
 function validasiPayload(payload) {
-  const { nama, cabor_id, pengalaman, sertifikat, biaya, ketersediaan_waktu } =
-    payload;
+  const { nama, cabor_id, pengalaman, lisensi, prestasi, biaya } = payload;
 
   if (!nama || typeof nama !== "string" || nama.trim() === "") {
-    w;
     throw createError("VALIDATION", "nama wajib dan harus berisi teks");
   }
 
@@ -30,48 +39,10 @@ function validasiPayload(payload) {
     );
   }
 
-  if (
-    pengalaman === undefined ||
-    !Number.isInteger(Number(pengalaman)) ||
-    Number(pengalaman) < 0
-  ) {
-    throw createError(
-      "VALIDATION",
-      "pengalaman wajib dan harus angka bulat >= 0",
-    );
-  }
-
-  if (
-    sertifikat === undefined ||
-    !Number.isInteger(Number(sertifikat)) ||
-    Number(sertifikat) < 0
-  ) {
-    throw createError(
-      "VALIDATION",
-      "sertifikat wajib dan harus angka bulat >= 0",
-    );
-  }
-
-  if (
-    biaya === undefined ||
-    !Number.isInteger(Number(biaya)) ||
-    Number(biaya) < 1
-  ) {
-    throw createError(
-      "VALIDATION",
-      "biaya wajib dan harus angka bulat positif",
-    );
-  }
-
-  if (
-    ketersediaan_waktu === undefined ||
-    typeof ketersediaan_waktu !== "boolean"
-  ) {
-    throw createError(
-      "VALIDATION",
-      "ketersediaan_waktu wajib dan harus boolean (true/false)",
-    );
-  }
+  validasiSkala(pengalaman, "pengalaman");
+  validasiSkala(lisensi, "lisensi");
+  validasiSkala(prestasi, "prestasi");
+  validasiSkala(biaya, "biaya");
 }
 
 async function pastikanCabangAda(cabor_id) {
@@ -96,9 +67,9 @@ async function tambahPelatih(payload) {
       nama: payload.nama.trim(),
       cabor_id: Number(payload.cabor_id),
       pengalaman: Number(payload.pengalaman),
-      sertifikat: Number(payload.sertifikat),
+      lisensi: Number(payload.lisensi),
+      prestasi: Number(payload.prestasi),
       biaya: Number(payload.biaya),
-      ketersediaan_waktu: payload.ketersediaan_waktu,
       status_verifikasi: "pending",
     },
     include: {
@@ -151,9 +122,9 @@ async function perbaruiPelatih(pelatihId, payload) {
       nama: payload.nama.trim(),
       cabor_id: Number(payload.cabor_id),
       pengalaman: Number(payload.pengalaman),
-      sertifikat: Number(payload.sertifikat),
+      lisensi: Number(payload.lisensi),
+      prestasi: Number(payload.prestasi),
       biaya: Number(payload.biaya),
-      ketersediaan_waktu: payload.ketersediaan_waktu,
     },
     include: {
       cabang: { select: { nama_cabor: true } },

@@ -31,4 +31,19 @@ const getKonsistensi = (req, res) => {
   });
 };
 
-module.exports = { getBobot, getKonsistensi };
+const getPeringkat = (req, res) => {
+  const { bobotAHP } = hitungBobotAHP();
+
+  const peringkat = KRITERIA.map((k, i) => ({
+    kode: k.kode,
+    nama: k.nama,
+    tipe: k.tipe,
+    bobot: parseFloat(bobotAHP[i].toFixed(4)),
+  }))
+    .sort((a, b) => b.bobot - a.bobot)
+    .map((item, idx) => ({ urutan: idx + 1, ...item }));
+
+  res.json({ peringkat });
+};
+
+module.exports = { getBobot, getKonsistensi, getPeringkat };
