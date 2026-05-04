@@ -10,6 +10,7 @@ const errorHandler = require("./middleware/error.handler.js");
 const ahpRoutes = require("./routes/ahp.routes.js");
 const rekomendasiRoutes = require("./routes/rekomendasi.routes.js");
 const pelatihRoutes = require("./routes/pelatih.routes.js");
+const caborRoutes = require("./routes/cabor.routes.js");
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use((req, res, next) => {
 app.use("/api/ahp", ahpRoutes);
 app.use("/api/rekomendasi", rekomendasiRoutes);
 app.use("/api/pelatih", pelatihRoutes);
+app.use("/api/cabor", caborRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

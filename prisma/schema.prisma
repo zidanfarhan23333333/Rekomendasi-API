@@ -30,17 +30,20 @@ model CabangOlahraga {
 }
 
 model Pelatih {
-  pelatih_id        Int      @id @default(autoincrement())
-  nama              String
-  cabor_id          Int
-  pengalaman        Int      // skala 1-5
-  lisensi           Int      // skala 1-5
-  prestasi          Int      // skala 1-5
-  biaya             Int      // skala 1-5 (cost: 5=sangat terjangkau, 1=sangat mahal)
-  status_verifikasi String
-  created_at        DateTime @default(now())
+  pelatih_id          Int      @id @default(autoincrement())
+  nama                String
+  cabor_id            Int
+  // --- Kriteria AHP (skala 1-5) ---
+  pengalaman          Int      // C1: benefit
+  lisensi             Int      // C2: benefit
+  prestasi            Int      // C3: benefit
+  biaya               Int      // C4: cost (5=sangat terjangkau, 1=sangat mahal)
+  // --- Deskripsi (bukan kriteria AHP) ---
+  ketersediaan_waktu  String?  // informasi jadwal/ketersediaan pelatih
+  status_verifikasi   String
+  created_at          DateTime @default(now())
 
-  cabang           CabangOlahraga    @relation(fields: [cabor_id], references: [cabor_id])
+  cabang           CabangOlahraga @relation(fields: [cabor_id], references: [cabor_id])
   nilai            NilaiPelatih[]
   pemesanan        Pemesanan[]
   hasilRekomendasi HasilRekomendasi[]
