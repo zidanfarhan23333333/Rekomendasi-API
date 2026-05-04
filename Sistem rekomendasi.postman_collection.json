@@ -1,0 +1,325 @@
+{
+  "info": {
+    "_postman_id": "06de9e09-bb11-4171-b11c-33bd2c3cb05e",
+    "name": "Sistem rekomendasi",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "24270386"
+  },
+  "item": [
+    {
+      "name": "pelatih",
+      "item": [
+        {
+          "name": "get pelatih",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/pelatih",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "pelatih"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get pelatih by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/pelatih/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "pelatih",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "tambah pelatih",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"nama\": \"Sfarkhan\",\r\n  \"cabor_id\": 2,\r\n  \"pengalaman\": 4,\r\n  \"lisensi\": 3,\r\n  \"prestasi\": 3,\r\n  \"biaya\": 4\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/pelatih",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "pelatih"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update pelatih",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"nama\": \"Fajar\",\r\n  \"cabor_id\": 2,\r\n  \"pengalaman\": 4,\r\n  \"lisensi\": 4,\r\n  \"prestasi\": 3,\r\n  \"biaya\": 3\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/pelatih/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "pelatih",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "6"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "hapus pelatih",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{base_url}}/api/pelatih/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "pelatih",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "7"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "verifikasi pelatih",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"status\": \"terverifikasi\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/pelatih/:id/verifikasi",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "pelatih",
+                ":id",
+                "verifikasi"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "8"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "AHP",
+      "item": [
+        {
+          "name": "Get Bobot",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ahp/bobot",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ahp",
+                "bobot"
+              ]
+            },
+            "description": "This is a GET request and it is used to \"get\" data from an endpoint. There is no request body for a GET request, but you can use query parameters to help specify the resource you want data on (e.g., in this request, we have `id=1`).\n\nA successful GET response will have a `200 OK` status, and should include some kind of response body - for example, HTML web content or JSON data."
+          },
+          "response": []
+        },
+        {
+          "name": "Konsistensi",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ahp/konsistensi",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ahp",
+                "konsistensi"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Peringkat Kategori AHP",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ahp/peringkat",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ahp",
+                "peringkat"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "REKOMENDASI",
+      "item": [
+        {
+          "name": "rekomendasi pelatih berdasarkan cabor",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"cabor_id\": 2,\r\n  \"user_id\": 2\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/rekomendasi",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "rekomendasi"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "id",
+      "value": "1"
+    },
+    {
+      "key": "base_url",
+      "value": "https://template.postman-echo.com"
+    }
+  ]
+}

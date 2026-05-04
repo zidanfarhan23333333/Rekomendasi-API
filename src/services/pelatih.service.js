@@ -135,9 +135,15 @@ async function perbaruiPelatih(pelatihId, payload) {
 async function hapusPelatih(pelatihId) {
   await dapatkanById(pelatihId);
 
-  await prisma.pelatih.delete({
-    where: { pelatih_id: pelatihId },
-  });
+  await prisma.$transaction([
+    prisma.nilaiPelatih.deleteMany({ where: { pelatih_id: pelatihId } }),
+    prisma.hasilRekomendasi.deleteMany({ where: { pelatih_id: pelatihId } }),
+    prisma.pemesanan.updateMany({
+      where: { pelatih_id: pelatihId },
+      data: { pelatih_id: null },
+    }),
+    prisma.pelatih.delete({ where: { pelatih_id: pelatihId } }),
+  ]);
 
   return { pelatih_id: pelatihId };
 }
