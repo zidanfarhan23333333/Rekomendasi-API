@@ -11,6 +11,9 @@ const ahpRoutes = require("./routes/ahp.routes.js");
 const rekomendasiRoutes = require("./routes/rekomendasi.routes.js");
 const pelatihRoutes = require("./routes/pelatih.routes.js");
 const caborRoutes = require("./routes/cabor.routes.js");
+const authRoutes = require("./routes/auth.routes.js");
+const adminRoutes = require("./routes/admin.routes.js");
+const userRoutes = require("./routes/user.routes.js");
 
 const app = express();
 
@@ -31,6 +34,9 @@ app.use("/api/ahp", ahpRoutes);
 app.use("/api/rekomendasi", rekomendasiRoutes);
 app.use("/api/pelatih", pelatihRoutes);
 app.use("/api/cabor", caborRoutes);
+app.use("/auth", authRoutes);
+
+app.use("/user", userRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

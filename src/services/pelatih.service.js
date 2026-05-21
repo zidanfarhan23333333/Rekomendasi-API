@@ -66,13 +66,10 @@ async function tambahPelatih(payload) {
     data: {
       nama: payload.nama.trim(),
       cabor_id: Number(payload.cabor_id),
-      // Kriteria AHP
       pengalaman: Number(payload.pengalaman),
       lisensi: Number(payload.lisensi),
       prestasi: Number(payload.prestasi),
       biaya: Number(payload.biaya),
-      // Deskripsi (bukan kriteria AHP)
-      ketersediaan_waktu: payload.ketersediaan_waktu?.trim() ?? null,
       status_verifikasi: "pending",
     },
     include: {
@@ -98,20 +95,12 @@ async function dapatkanSemua(filter = {}) {
 
 async function dapatkanById(pelatihId) {
   const pelatih = await prisma.pelatih.findUnique({
-  where: {
-    pelatih_id: pelatihId
-  },
-  include: {
-    cabang: {
-      select: {
-        nama_cabor: true
-      }
+    where: { pelatih_id: pelatihId },
+    include: {
+      cabang: { select: { nama_cabor: true } },
     },
-    nilai: true,
-    pemesanan: true,
-    hasilRekomendasi: true
-  }
-})
+  });
+
   if (!pelatih) {
     throw createError(
       "NOT_FOUND",
@@ -132,13 +121,10 @@ async function perbaruiPelatih(pelatihId, payload) {
     data: {
       nama: payload.nama.trim(),
       cabor_id: Number(payload.cabor_id),
-      // Kriteria AHP
       pengalaman: Number(payload.pengalaman),
       lisensi: Number(payload.lisensi),
       prestasi: Number(payload.prestasi),
       biaya: Number(payload.biaya),
-      // Deskripsi (bukan kriteria AHP)
-      ketersediaan_waktu: payload.ketersediaan_waktu?.trim() ?? null,
     },
     include: {
       cabang: { select: { nama_cabor: true } },
@@ -147,53 +133,17 @@ async function perbaruiPelatih(pelatihId, payload) {
 }
 
 async function hapusPelatih(pelatihId) {
-  // Cek apakah pelatih ada dengan include relasi
-  const pelatih = await prisma.pelatih.findUnique({
-  where: {
-    pelatih_id: pelatihId
-  },
-  include: {
-    nilai: true,
-    pemesanan: true,
-    hasilRekomendasi: true
-  }
-})
+  await dapatkanById(pelatihId);
 
-  if (!pelatih) {
-    throw createError(
-      "NOT_FOUND",
-      `Pelatih dengan id ${pelatihId} tidak ditemukan`,
-    );
-  }
-
-  // Cek apakah masih ada nilai pelatih
-  if (pelatih.nilai && pelatih.nilai.length > 0) {
-    throw createError(
-      "IN_USE",
-      `Pelatih tidak dapat dihapus karena masih memiliki ${pelatih.nilai.length} nilai kriteria`,
-    );
-  }
-
-  // Cek apakah masih ada pemesanan
-  if (pelatih.pemesanan && pelatih.pemesanan.length > 0) {
-    throw createError(
-      "IN_USE",
-      `Pelatih tidak dapat dihapus karena masih memiliki ${pelatih.pemesanan.length} pemesanan`,
-    );
-  }
-
-  // Cek apakah masih ada hasil rekomendasi
-  if (pelatih.hasilRekomendasi && pelatih.hasilRekomendasi.length > 0) {
-    throw createError(
-      "IN_USE",
-      `Pelatih tidak dapat dihapus karena masih ada dalam ${pelatih.hasilRekomendasi.length} hasil rekomendasi`,
-    );
-  }
-
-  // Jika tidak ada relasi, hapus pelatih
-  await prisma.pelatih.delete({
-    where: { pelatih_id: pelatihId },
-  });
+  await prisma.$transaction([
+    prisma.nilaiPelatih.deleteMany({ where: { pelatih_id: pelatihId } }),
+    prisma.hasilRekomendasi.deleteMany({ where: { pelatih_id: pelatihId } }),
+    prisma.pemesanan.updateMany({
+      where: { pelatih_id: pelatihId },
+      data: { pelatih_id: null },
+    }),
+    prisma.pelatih.delete({ where: { pelatih_id: pelatihId } }),
+  ]);
 
   return { pelatih_id: pelatihId };
 }

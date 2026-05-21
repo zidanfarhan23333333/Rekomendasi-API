@@ -1,32 +1,35 @@
 "use strict";
 
-const { RANDOM_INDEX } = require("../constants/ahpConstants.js");
-const { CR_THRESHOLD } = require("../constants/ahpConstants.js");
-const { PAIRWISE_MATRIX } = require("../constants/ahpConstants.js");
+const {
+  RANDOM_INDEX,
+  CR_THRESHOLD,
+  PAIRWISE_MATRIX,
+} = require("../constants/ahpConstants.js");
 
 function hitungBobotAHP(matrix = PAIRWISE_MATRIX) {
   const n = matrix.length;
 
-  const geoMean = matrix.map((baris) => {
-    const produk = baris.reduce((acc, val) => acc * val, 1);
-    return Math.pow(produk, 1 / n);
-  });
+  // 1. Jumlah tiap kolom
+  const jumlahKolom = Array(n).fill(0);
+  for (let j = 0; j < n; j++)
+    for (let i = 0; i < n; i++) jumlahKolom[j] += matrix[i][j];
 
-  const jumlah = geoMean.reduce((a, b) => a + b, 0);
-  const bobotAHP = geoMean.map((val) => val / jumlah);
-
-  //   a) Ax = matrix × bobot
-  const Ax = matrix.map((baris) =>
-    baris.reduce((sum, val, j) => sum + val * bobotAHP[j], 0),
+  // 2. Normalisasi: bagi tiap elemen dengan jumlah kolomnya
+  const normalized = matrix.map((row) =>
+    row.map((val, j) => val / jumlahKolom[j]),
   );
 
-  //   b) λ_max = mean( Ax[i] / bobot[i] )
+  // 3. Bobot = rata-rata baris dari matriks ternormalisasi
+  const bobotAHP = normalized.map((row) => row.reduce((a, b) => a + b, 0) / n);
+
+  // 4. Hitung λ_max: (A × W) / W lalu rata-rata
+  const Ax = matrix.map((row) =>
+    row.reduce((sum, val, j) => sum + val * bobotAHP[j], 0),
+  );
   const lambdaMax = Ax.reduce((sum, val, i) => sum + val / bobotAHP[i], 0) / n;
 
-  //   c) CI  =  (λ_max − n) / (n − 1)
+  // 5. CI dan CR
   const CI = (lambdaMax - n) / (n - 1);
-
-  //   d) CR  =  CI / RI
   const RI = RANDOM_INDEX[n] ?? 0.9;
   const CR = CI / RI;
 

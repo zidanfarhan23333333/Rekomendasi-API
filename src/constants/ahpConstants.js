@@ -10,13 +10,13 @@ const KRITERIA = Object.freeze([
 // Matriks perbandingan berpasangan berdasarkan wawancara pengurus UKM Olahraga UNIMMA
 // Urutan: C1=Pengalaman, C2=Lisensi, C3=Prestasi, C4=Biaya
 // Sumber: Tabel 3.2 skripsi
-const PAIRWISE_MATRIX = Object.freeze([
-  //        C1        C2        C3        C4
-  [1,        3,        5,        7      ], // C1 Pengalaman
-  [1 / 3,    1,        3,        5      ], // C2 Lisensi
-  [1 / 5,    1 / 3,    1,        3      ], // C3 Prestasi
-  [1 / 7,    1 / 5,    1 / 3,    1      ], // C4 Biaya
-]);
+// ahpConstants.js
+const PAIRWISE_MATRIX = [
+  [1, 3, 5, 7],
+  [1 / 3, 1, 4, 5], // ← C2 vs C1=1/3, C2 vs C3=4, C2 vs C4=5
+  [1 / 5, 1 / 3, 1, 3],
+  [1 / 7, 1 / 5, 1 / 3, 1],
+];
 
 const RANDOM_INDEX = Object.freeze({
   1: 0,

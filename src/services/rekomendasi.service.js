@@ -3,18 +3,13 @@
 const prisma = require("../config/database.js");
 const { KRITERIA } = require("../constants/ahpConstants.js");
 const { hitungBobotAHP } = require("./ahp.service.js");
-const { normalisasi, hitungSkorAkhir } = require("./normalisasi.service.js");
 
-function mapPelatihKeNilai(pelatih) {
-  return [
-    pelatih.pengalaman,
-    pelatih.lisensi,
-    pelatih.prestasi,
-    pelatih.biaya,
-  ];
+function mapPelatihKeNilai(p) {
+  return [p.pengalaman, p.lisensi, p.prestasi, p.biaya];
 }
 
 async function dapatkanRekomendasi({ cabor_id, user_id }) {
+  // 1. Ambil pelatih
   const pelatihList = await prisma.pelatih.findMany({
     where: {
       cabor_id,
@@ -36,16 +31,37 @@ async function dapatkanRekomendasi({ cabor_id, user_id }) {
     throw err;
   }
 
-  const pelatihArr = pelatihList.map((p) => ({
-    pelatih_id: p.pelatih_id,
-    nilai: mapPelatihKeNilai(p),
-  }));
-
+  // 2. Hitung bobot AHP
   const ahpResult = hitungBobotAHP();
-  const tipeKriteria = KRITERIA.map((k) => k.tipe);
-  const dataNormalisasi = normalisasi(pelatihArr, tipeKriteria);
-  const hasil = hitungSkorAkhir(dataNormalisasi, ahpResult.bobotAHP);
 
+  // ⚠️ Pastikan urutan:
+  // [pengalaman, lisensi, prestasi, biaya]
+
+  // 3. Hitung skor (AHP murni)
+  const hasil = pelatihList.map((p) => {
+    const nilai = mapPelatihKeNilai(p);
+
+    const skor =
+      nilai[0] * ahpResult.bobotAHP[0] +
+      nilai[1] * ahpResult.bobotAHP[1] +
+      nilai[2] * ahpResult.bobotAHP[2] +
+      nilai[3] * ahpResult.bobotAHP[3];
+
+    return {
+      pelatih_id: p.pelatih_id,
+      nama_pelatih: p.nama,
+      skor_akhir: parseFloat(skor.toFixed(4)),
+    };
+  });
+
+  // 4. Ranking
+  hasil.sort((a, b) => b.skor_akhir - a.skor_akhir);
+
+  hasil.forEach((item, idx) => {
+    item.peringkat = idx + 1;
+  });
+
+  // 5. Simpan ke database
   await Promise.all(
     hasil.map((item) =>
       prisma.hasilRekomendasi.create({
@@ -59,15 +75,7 @@ async function dapatkanRekomendasi({ cabor_id, user_id }) {
     ),
   );
 
-  const namaMap = new Map(pelatihList.map((p) => [p.pelatih_id, p.nama]));
-
-  const rekomendasi = hasil.map((item) => ({
-    peringkat: item.peringkat,
-    pelatih_id: item.pelatih_id,
-    nama_pelatih: namaMap.get(item.pelatih_id),
-    skor_akhir: item.skor_akhir,
-  }));
-
+  // 6. Metadata (untuk frontend / laporan)
   const meta = {
     ahp: {
       kriteria: KRITERIA.map((k, i) => ({
@@ -81,19 +89,28 @@ async function dapatkanRekomendasi({ cabor_id, user_id }) {
     },
   };
 
-  return { meta, rekomendasi };
+  return {
+    meta,
+    rekomendasi: hasil,
+  };
 }
 
-async function dapatkanRiwayat(userId) {
+async function dapatkanRiwayat(user_id) {
   return prisma.hasilRekomendasi.findMany({
-    where: { user_id: userId },
+    where: { user_id },
     orderBy: { tanggal: "desc" },
     include: {
       pelatih: {
-        select: { nama: true, cabor_id: true },
+        select: {
+          nama: true,
+          cabor_id: true,
+        },
       },
     },
   });
 }
 
-module.exports = { dapatkanRekomendasi, dapatkanRiwayat };
+module.exports = {
+  dapatkanRekomendasi,
+  dapatkanRiwayat,
+};
