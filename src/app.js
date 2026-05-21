@@ -17,11 +17,6 @@ const userRoutes = require("./routes/user.routes.js");
 
 const app = express();
 
-app.use(express.json());
-
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-
 app.use(cors());
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -30,13 +25,17 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
 app.use("/api/ahp", ahpRoutes);
 app.use("/api/rekomendasi", rekomendasiRoutes);
 app.use("/api/pelatih", pelatihRoutes);
 app.use("/api/cabor", caborRoutes);
-app.use("/auth", authRoutes);
-
-app.use("/user", userRoutes);
+app.use("/auth", authRoutes); // ← tetap /auth sesuai frontend
+app.use("/api/admin", adminRoutes); // ← tambahan
+app.use("/api/user", userRoutes); // ← tambahan
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

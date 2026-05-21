@@ -14,6 +14,7 @@ model User {
   password   String
   role       String   // "admin" | "user"
   created_at DateTime @default(now())
+  pelatihProfile   Pelatih?
 
   pemesanan        Pemesanan[]
   hasilRekomendasi HasilRekomendasi[]
@@ -33,14 +34,16 @@ model Pelatih {
   pelatih_id        Int      @id @default(autoincrement())
   nama              String
   cabor_id          Int
-  pengalaman        Int      // skala 1-5
-  lisensi           Int      // skala 1-5
-  prestasi          Int      // skala 1-5
-  biaya             Int      // skala 1-5 (cost: 5=sangat terjangkau, 1=sangat mahal)
+  user_id           Int?     @unique   // ← tambah ini
+  pengalaman        Int
+  lisensi           Int
+  prestasi          Int
+  biaya             Int
   status_verifikasi String
   created_at        DateTime @default(now())
 
   cabang           CabangOlahraga    @relation(fields: [cabor_id], references: [cabor_id])
+  user             User?             @relation(fields: [user_id], references: [user_id])  // ← tambah ini
   nilai            NilaiPelatih[]
   pemesanan        Pemesanan[]
   hasilRekomendasi HasilRekomendasi[]

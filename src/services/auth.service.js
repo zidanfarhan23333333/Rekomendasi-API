@@ -33,20 +33,33 @@ class AuthService {
   async login(credentials) {
     const { email, password } = credentials;
 
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) throw new Error("Invalid email or password");
+    try {
+      const user = await prisma.user.findUnique({ where: { email } });
+      console.log("USER FOUND:", user ? user.email : "null");
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) throw new Error("Invalid email or password");
+      if (!user) throw new Error("Invalid email or password");
 
-    const token = jwt.sign(
-      { userId: user.user_id, email: user.email, role: user.role }, // ✅ user_id
-      jwtConfig.secret,
-      { expiresIn: jwtConfig.expiresIn },
-    );
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      console.log("PASSWORD VALID:", isPasswordValid);
 
-    const { password: _, ...userWithoutPassword } = user;
-    return { user: userWithoutPassword, token };
+      if (!isPasswordValid) throw new Error("Invalid email or password");
+
+      console.log("JWT SECRET:", jwtConfig.secret ? "ada" : "KOSONG");
+      console.log("JWT EXPIRES:", jwtConfig.expiresIn);
+
+      const token = jwt.sign(
+        { userId: user.user_id, email: user.email, role: user.role },
+        jwtConfig.secret,
+        { expiresIn: jwtConfig.expiresIn },
+      );
+
+      const { password: _, ...userWithoutPassword } = user;
+      return { user: userWithoutPassword, token };
+    } catch (error) {
+      console.error("AUTH SERVICE LOGIN ERROR:", error.message);
+      console.error("AUTH SERVICE LOGIN STACK:", error.stack);
+      throw error;
+    }
   }
 
   verifyToken(token) {
@@ -59,14 +72,13 @@ class AuthService {
 
   async getUserById(userId) {
     const user = await prisma.user.findUnique({
-      where: { user_id: userId }, // ✅ user_id
+      where: { user_id: userId },
       select: {
         user_id: true,
         nama: true,
         email: true,
         role: true,
         created_at: true,
-        updated_at: true, // ✅ snake_case
       },
     });
 

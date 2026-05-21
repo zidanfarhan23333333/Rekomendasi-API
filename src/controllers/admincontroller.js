@@ -1,6 +1,6 @@
 "use strict";
 
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../config/database");
 const ApiResponse = require("../utils/response");
 
 class AdminController {
@@ -23,6 +23,209 @@ class AdminController {
     }
   }
 
+  async getStats(req, res) {
+    try {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const [
+        totalUser,
+        totalPelatih,
+        pelatihAktif,
+        totalBooking,
+        bookingBulanIni,
+        pendingVerifikasi,
+      ] = await Promise.all([
+        prisma.user.count(),
+        prisma.pelatih.count(),
+        prisma.pelatih.count({ where: { status_verifikasi: "terverifikasi" } }),
+        prisma.pemesanan.count(),
+        // Pakai "tanggal" sesuai schema Pemesanan (bukan created_at)
+        prisma.pemesanan.count({ where: { tanggal: { gte: startOfMonth } } }),
+        prisma.pelatih.count({ where: { status_verifikasi: "pending" } }),
+      ]);
+
+      return ApiResponse.success(
+        res,
+        {
+          totalUser,
+          totalPelatih,
+          pelatihAktif,
+          totalBooking,
+          bookingBulanIni,
+          pendingVerifikasi,
+          totalRevenue: 0, // Pemesanan tidak punya kolom harga
+          satisfactionRate: 0, // Belum ada tabel ulasan
+        },
+        "Stats retrieved successfully",
+      );
+    } catch (error) {
+      console.error("getStats error:", error);
+      return ApiResponse.error(res, "Failed to retrieve stats");
+    }
+  }
+
+  async getAllBookings(req, res) {
+    try {
+      const { search = "", page = 1, limit = 8 } = req.query;
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      const where = search
+        ? {
+            OR: [
+              { user: { nama: { contains: search, mode: "insensitive" } } },
+              { pelatih: { nama: { contains: search, mode: "insensitive" } } },
+              { status: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {};
+
+      const [total, bookings] = await Promise.all([
+        prisma.pemesanan.count({ where }),
+        prisma.pemesanan.findMany({
+          where,
+          skip,
+          take: parseInt(limit),
+          orderBy: { tanggal: "desc" },
+          include: {
+            user: { select: { nama: true, email: true } },
+            pelatih: { select: { nama: true } },
+            cabang: { select: { nama_cabor: true } },
+          },
+        }),
+      ]);
+
+      const normalized = bookings.map((b) => ({
+        booking_id: b.pemesanan_id,
+        status: b.status,
+        tanggal: b.tanggal,
+        userName: b.user?.nama || "-",
+        pelatihNama: b.pelatih?.nama || "-",
+        cabor: b.cabang?.nama_cabor || "-",
+      }));
+
+      return ApiResponse.success(
+        res,
+        {
+          bookings: normalized,
+          pagination: {
+            total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(total / parseInt(limit)),
+          },
+        },
+        "Bookings retrieved successfully",
+      );
+    } catch (error) {
+      console.error("getAllBookings error:", error);
+      return ApiResponse.error(res, "Failed to retrieve bookings");
+    }
+  }
+
+  async getAllCabor(req, res) {
+    try {
+      const cabors = await prisma.cabangOlahraga.findMany({
+        include: {
+          _count: { select: { pelatih: true } },
+        },
+        orderBy: { nama_cabor: "asc" },
+      });
+
+      const normalized = cabors.map((c) => ({
+        id: c.cabor_id,
+        cabor_id: c.cabor_id,
+        name: c.nama_cabor,
+        nama_cabor: c.nama_cabor,
+        count: c._count.pelatih,
+      }));
+
+      return ApiResponse.success(
+        res,
+        normalized,
+        "Cabor retrieved successfully",
+      );
+    } catch (error) {
+      console.error("getAllCabor error:", error);
+      return ApiResponse.error(res, "Failed to retrieve cabor");
+    }
+  }
+
+  async getRanking(req, res) {
+    try {
+      // Ambil semua pelatih terverifikasi beserta data untuk hitung skor AHP
+      const pelatih = await prisma.pelatih.findMany({
+        where: { status_verifikasi: "terverifikasi" },
+        include: {
+          cabang: { select: { nama_cabor: true } },
+          _count: { select: { pemesanan: true } },
+        },
+      });
+
+      // Bobot AHP (sesuaikan dengan kebutuhan skripsi kamu)
+      const bobot = {
+        pengalaman: 0.35,
+        lisensi: 0.25,
+        rating: 0.2,
+        totalBooking: 0.12,
+        biaya: 0.08,
+      };
+
+      // Normalisasi nilai ke skala 0-1 lalu hitung skor AHP
+      const maxVal = (arr, key) =>
+        Math.max(...arr.map((p) => p[key] || 0)) || 1;
+
+      const maxPengalaman = maxVal(pelatih, "pengalaman");
+      const maxRating = maxVal(pelatih, "rating");
+      const maxBooking =
+        Math.max(...pelatih.map((p) => p._count.pemesanan)) || 1;
+      const maxBiaya = maxVal(pelatih, "biaya");
+
+      const lisensiScore = {
+        Internasional: 1,
+        Nasional: 0.75,
+        Daerah: 0.5,
+        "-": 0.25,
+      };
+
+      const ranked = pelatih
+        .map((p) => {
+          const skorAHP =
+            bobot.pengalaman * ((p.pengalaman || 0) / maxPengalaman) +
+            bobot.lisensi * (lisensiScore[p.lisensi] || 0.25) +
+            bobot.rating * ((p.rating || 0) / 5) +
+            bobot.totalBooking * (p._count.pemesanan / maxBooking) +
+            bobot.biaya * (1 - (p.biaya || 0) / maxBiaya); // biaya lebih rendah = lebih baik
+
+          return {
+            pelatih_id: p.pelatih_id,
+            nama: p.nama,
+            cabor: p.cabang?.nama_cabor || "-",
+            pengalaman: p.pengalaman || 0,
+            lisensi: p.lisensi || "-",
+            rating: p.rating || 0,
+            totalBooking: p._count.pemesanan,
+            biaya: p.biaya || 0,
+            skorAHP: parseFloat(skorAHP.toFixed(4)),
+            status_verifikasi: p.status_verifikasi,
+          };
+        })
+        .sort((a, b) => b.skorAHP - a.skorAHP);
+
+      return ApiResponse.success(
+        res,
+        {
+          pelatih: ranked,
+          bobot,
+        },
+        "Ranking retrieved successfully",
+      );
+    } catch (error) {
+      console.error("getRanking error:", error);
+      return ApiResponse.error(res, "Failed to retrieve ranking");
+    }
+  }
+
   async verifyPelatih(req, res) {
     try {
       const { id } = req.params;
@@ -37,17 +240,14 @@ class AdminController {
       }
 
       const pelatihId = parseInt(id);
-      if (isNaN(pelatihId)) {
+      if (isNaN(pelatihId))
         return ApiResponse.badRequest(res, "ID pelatih tidak valid");
-      }
 
       const existing = await prisma.pelatih.findUnique({
         where: { pelatih_id: pelatihId },
       });
-
-      if (!existing) {
+      if (!existing)
         return ApiResponse.notFound(res, "Pelatih tidak ditemukan");
-      }
 
       const updated = await prisma.pelatih.update({
         where: { pelatih_id: pelatihId },

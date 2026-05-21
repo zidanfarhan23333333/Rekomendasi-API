@@ -1,7 +1,7 @@
 "use strict";
 const prisma = require("../config/database.js");
-const ApiResponse = require("../utils/response");
-const pelatihService = require("../services/pelatih.service");
+const ApiResponse = require("../utils/response.js");
+const pelatihService = require("../services/pelatih.service.js");
 
 class UserController {
   /**
