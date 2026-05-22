@@ -3,7 +3,7 @@ const router = require("express").Router();
 const { authenticate, requireRole } = require("../middleware/auth.middleware");
 const ctrl = require("../controllers/usercontroller");
 
-router.use(authenticate, requireRole("USER", "ADMIN"));
+router.use(authenticate, requireRole("user", "admin"));
 
 router.get("/me", ctrl.getProfile);
 router.get("/pelatih", ctrl.listPelatih);

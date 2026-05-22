@@ -11,22 +11,10 @@ function createError(code, message) {
 // ─── Bobot AHP (konsisten dengan admin.controller) ────────────────────────────
 const BOBOT = { pengalaman: 0.35, lisensi: 0.25, prestasi: 0.25, biaya: 0.15 };
 
-// ─── Helper: ambil pelatih by user_id ────────────────────────────────────────
-// Asumsi tabel Pelatih punya kolom user_id (Int? @unique).
-// Jika belum ada, jalankan migrasi dulu:
-//   model Pelatih { ... user_id Int? @unique }
+// ─── Helper: ambil pelatih by user_id FK ─────────────────────────────────────
 async function getPelatihByUserId(userId) {
-  // Ambil nama user dulu
-  const user = await prisma.user.findUnique({
+  const pelatih = await prisma.pelatih.findUnique({
     where: { user_id: userId },
-    select: { nama: true },
-  });
-
-  if (!user) throw createError("NOT_FOUND", "User tidak ditemukan");
-
-  // Cari pelatih by nama (asumsi nama sama)
-  const pelatih = await prisma.pelatih.findFirst({
-    where: { nama: user.nama },
     include: { cabang: { select: { nama_cabor: true } } },
   });
 

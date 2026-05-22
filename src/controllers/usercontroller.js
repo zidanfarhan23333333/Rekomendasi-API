@@ -11,13 +11,13 @@ class UserController {
   async getProfile(req, res) {
     try {
       const user = await prisma.user.findUnique({
-        where: { id: req.user.userId },
+        where: { user_id: req.user.userId },
         select: {
-          id: true,
+          user_id: true,
+          nama: true,
           email: true,
           role: true,
-          createdAt: true,
-          updatedAt: true,
+          created_at: true,
         },
       });
 

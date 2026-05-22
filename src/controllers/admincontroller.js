@@ -153,58 +153,43 @@ class AdminController {
 
   async getRanking(req, res) {
     try {
-      // Ambil semua pelatih terverifikasi beserta data untuk hitung skor AHP
       const pelatih = await prisma.pelatih.findMany({
         where: { status_verifikasi: "terverifikasi" },
         include: {
           cabang: { select: { nama_cabor: true } },
-          _count: { select: { pemesanan: true } },
         },
       });
 
-      // Bobot AHP (sesuaikan dengan kebutuhan skripsi kamu)
       const bobot = {
         pengalaman: 0.35,
         lisensi: 0.25,
-        rating: 0.2,
-        totalBooking: 0.12,
-        biaya: 0.08,
+        prestasi: 0.25,
+        biaya: 0.15,
       };
 
-      // Normalisasi nilai ke skala 0-1 lalu hitung skor AHP
       const maxVal = (arr, key) =>
         Math.max(...arr.map((p) => p[key] || 0)) || 1;
 
       const maxPengalaman = maxVal(pelatih, "pengalaman");
-      const maxRating = maxVal(pelatih, "rating");
-      const maxBooking =
-        Math.max(...pelatih.map((p) => p._count.pemesanan)) || 1;
+      const maxLisensi = maxVal(pelatih, "lisensi");
+      const maxPrestasi = maxVal(pelatih, "prestasi");
       const maxBiaya = maxVal(pelatih, "biaya");
-
-      const lisensiScore = {
-        Internasional: 1,
-        Nasional: 0.75,
-        Daerah: 0.5,
-        "-": 0.25,
-      };
 
       const ranked = pelatih
         .map((p) => {
           const skorAHP =
             bobot.pengalaman * ((p.pengalaman || 0) / maxPengalaman) +
-            bobot.lisensi * (lisensiScore[p.lisensi] || 0.25) +
-            bobot.rating * ((p.rating || 0) / 5) +
-            bobot.totalBooking * (p._count.pemesanan / maxBooking) +
-            bobot.biaya * (1 - (p.biaya || 0) / maxBiaya); // biaya lebih rendah = lebih baik
+            bobot.lisensi * ((p.lisensi || 0) / maxLisensi) +
+            bobot.prestasi * ((p.prestasi || 0) / maxPrestasi) +
+            bobot.biaya * (1 - (p.biaya || 0) / maxBiaya);
 
           return {
             pelatih_id: p.pelatih_id,
             nama: p.nama,
             cabor: p.cabang?.nama_cabor || "-",
             pengalaman: p.pengalaman || 0,
-            lisensi: p.lisensi || "-",
-            rating: p.rating || 0,
-            totalBooking: p._count.pemesanan,
+            lisensi: p.lisensi || 0,
+            prestasi: p.prestasi || 0,
             biaya: p.biaya || 0,
             skorAHP: parseFloat(skorAHP.toFixed(4)),
             status_verifikasi: p.status_verifikasi,
