@@ -2,6 +2,7 @@
 
 const express = require("express");
 const router = express.Router();
+const { authenticate, requireRole } = require("../middleware/auth.middleware");
 
 const {
   postPelatih,
@@ -10,7 +11,7 @@ const {
   putPelatih,
   deletePelatih,
   patchVerifikasi,
-} = require("../controllers/pelatihcontroller.js");
+} = require("../controllers/pelatihcontroller");
 
 const {
   myProfile,
@@ -18,21 +19,21 @@ const {
   myStats,
   myBookings,
   myJadwal,
-} = require("../controllers/pelatih.my.controller.js");
+} = require("../controllers/pelatihMyController");
 
-const { authenticate } = require("../middleware/auth.middleware.js");
+// ── PELATIH PRIVATE — harus di atas /:id ──────────────────────────
+router.get("/my-profile", authenticate, requireRole("pelatih"), myProfile);
+router.put("/my-profile", authenticate, requireRole("pelatih"), updateProfile);
+router.get("/my-stats", authenticate, requireRole("pelatih"), myStats);
+router.get("/bookings", authenticate, requireRole("pelatih"), myBookings);
+router.get("/my-jadwal", authenticate, requireRole("pelatih"), myJadwal);
 
-router.get("/my-profile", authenticate, myProfile);
-router.put("/my-profile", authenticate, updateProfile);
-router.get("/my-stats", authenticate, myStats);
-router.get("/bookings", authenticate, myBookings);
-router.get("/my-jadwal", authenticate, myJadwal);
-
-router.post("/", postPelatih);
+// ── PUBLIC / ADMIN ─────────────────────────────────────────────────
 router.get("/", getAllPelatih);
+router.post("/", authenticate, postPelatih);
 router.get("/:id", getPelatihById);
-router.put("/:id", putPelatih);
-router.delete("/:id", deletePelatih);
-router.patch("/:id/verifikasi", patchVerifikasi);
+router.put("/:id", authenticate, putPelatih);
+router.delete("/:id", authenticate, deletePelatih);
+router.patch("/:id/verify", authenticate, patchVerifikasi);
 
 module.exports = router;

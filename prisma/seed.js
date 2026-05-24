@@ -1,223 +1,167 @@
-"use strict";
-
-require("dotenv").config();
-
 const { PrismaClient } = require("@prisma/client");
 const { PrismaPg } = require("@prisma/adapter-pg");
 const { Pool } = require("pg");
 const bcrypt = require("bcryptjs");
+require("dotenv").config();
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// ---------------------------------------------------------------------------
-// Data seed — disesuaikan dengan schema.prisma
-// ---------------------------------------------------------------------------
-
-const KRITERIA = [
-  { nama_kriteria: "Pengalaman", tipe: "benefit" },
-  { nama_kriteria: "Prestasi", tipe: "benefit" },
-  { nama_kriteria: "Biaya", tipe: "cost" },
-];
-
-const PELATIH = [
-  {
-    nama: "Ahmad Fauzi",
-    cabang_olahraga: "Futsal",
-    pengalaman: 8,
-    prestasi: "Juara PON 2021",
-    biaya: 300000,
-    ketersediaan_waktu: "Senin-Jumat",
-  },
-  {
-    nama: "Budi Setiawan",
-    cabang_olahraga: "Futsal",
-    pengalaman: 5,
-    prestasi: "Juara Kota 2022",
-    biaya: 200000,
-    ketersediaan_waktu: "Senin-Sabtu",
-  },
-  {
-    nama: "Cahyo Nugroho",
-    cabang_olahraga: "Basket",
-    pengalaman: 10,
-    prestasi: "Medali SEA Games",
-    biaya: 500000,
-    ketersediaan_waktu: "Setiap hari",
-  },
-  {
-    nama: "Deni Prayoga",
-    cabang_olahraga: "Basket",
-    pengalaman: 7,
-    prestasi: "Juara Provinsi 2020",
-    biaya: 350000,
-    ketersediaan_waktu: "Senin-Jumat",
-  },
-  {
-    nama: "Eko Prasetyo",
-    cabang_olahraga: "Voli",
-    pengalaman: 3,
-    prestasi: "Juara Lokal 2023",
-    biaya: 150000,
-    ketersediaan_waktu: "Sabtu-Minggu",
-  },
-  {
-    nama: "Fajar Maulana",
-    cabang_olahraga: "Voli",
-    pengalaman: 6,
-    prestasi: "Juara Kabupaten 2021",
-    biaya: 250000,
-    ketersediaan_waktu: "Senin-Sabtu",
-  },
-];
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
-
 async function main() {
-  console.log("Memulai seed...\n");
+  // Cabang Olahraga — pakai upsert supaya tidak duplikat
+  const cabors = await Promise.all([
+    prisma.cabangOlahraga.upsert({
+      where: { nama_cabor: "Badminton" },
+      update: {},
+      create: { nama_cabor: "Badminton" },
+    }),
+    prisma.cabangOlahraga.upsert({
+      where: { nama_cabor: "Renang" },
+      update: {},
+      create: { nama_cabor: "Renang" },
+    }),
+    prisma.cabangOlahraga.upsert({
+      where: { nama_cabor: "Sepak Bola" },
+      update: {},
+      create: { nama_cabor: "Sepak Bola" },
+    }),
+    prisma.cabangOlahraga.upsert({
+      where: { nama_cabor: "Basket" },
+      update: {},
+      create: { nama_cabor: "Basket" },
+    }),
+    prisma.cabangOlahraga.upsert({
+      where: { nama_cabor: "Voli" },
+      update: {},
+      create: { nama_cabor: "Voli" },
+    }),
+  ]);
 
-  // 1. Users
-  console.log("1. Seeding users...");
-  const passwordAdmin = await bcrypt.hash("admin123", 10);
-  const passwordUser = await bcrypt.hash("user123", 10);
+  console.log("✅ Cabang olahraga selesai");
 
-  const admin = await prisma.user.upsert({
+  // Users — pakai upsert supaya tidak duplikat
+  const adminPass = await bcrypt.hash("admin123", 10);
+  const userPass = await bcrypt.hash("user123", 10);
+  const pelatihPass = await bcrypt.hash("pelatih123", 10);
+
+  await prisma.user.upsert({
     where: { email: "admin@ukm.ac.id" },
     update: {},
     create: {
       nama: "Administrator",
       email: "admin@ukm.ac.id",
-      password: passwordAdmin,
+      password: adminPass,
       role: "admin",
     },
   });
-  console.log(`   ✓ Admin : ${admin.email} (id: ${admin.user_id})`);
 
-  const userBiasa = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: "mahasiswa@ukm.ac.id" },
     update: {},
     create: {
       nama: "Mahasiswa UKM",
       email: "mahasiswa@ukm.ac.id",
-      password: passwordUser,
+      password: userPass,
       role: "user",
     },
   });
-  console.log(`   ✓ User  : ${userBiasa.email} (id: ${userBiasa.user_id})`);
 
-  // 2. Kriteria
-  console.log("\n2. Seeding kriteria...");
-  const kriteriaIds = [];
-  for (const k of KRITERIA) {
-    // Tidak ada unique field selain kriteria_id, cek by nama dulu
-    const existing = await prisma.kriteria.findFirst({
-      where: { nama_kriteria: k.nama_kriteria },
+  const userFarkhan = await prisma.user.upsert({
+    where: { email: "Farhan23@gmail.com" },
+    update: {},
+    create: {
+      nama: "Farkhan",
+      email: "Farhan23@gmail.com",
+      password: pelatihPass,
+      role: "pelatih",
+    },
+  });
+
+  const userPelatih = await prisma.user.upsert({
+    where: { email: "pelatih@gmail.com" },
+    update: {},
+    create: {
+      nama: "Pelatih",
+      email: "pelatih@gmail.com",
+      password: pelatihPass,
+      role: "pelatih",
+    },
+  });
+
+  console.log("✅ Users selesai");
+
+  // Pelatih — cek dulu sebelum create
+  const existingFarkhan = await prisma.pelatih.findUnique({
+    where: { user_id: userFarkhan.user_id },
+  });
+  if (!existingFarkhan) {
+    await prisma.pelatih.create({
+      data: {
+        nama: "Farkhan",
+        cabor_id: cabors[0].cabor_id,
+        user_id: userFarkhan.user_id,
+        pengalaman: 4,
+        lisensi: 3,
+        prestasi: 4,
+        biaya: 3,
+        status_verifikasi: "terverifikasi",
+      },
     });
-    let result;
-    if (existing) {
-      result = await prisma.kriteria.update({
-        where: { kriteria_id: existing.kriteria_id },
-        data: { tipe: k.tipe },
-      });
-    } else {
-      result = await prisma.kriteria.create({ data: k });
-    }
-    kriteriaIds.push(result.kriteria_id);
-    console.log(
-      `   ✓ ${result.nama_kriteria} — ${result.tipe} (id: ${result.kriteria_id})`,
-    );
   }
 
-  // 3. Pelatih + NilaiPelatih
-  console.log("\n3. Seeding pelatih...");
-  for (const p of PELATIH) {
-    const existing = await prisma.pelatih.findFirst({
-      where: { nama: p.nama, cabang_olahraga: p.cabang_olahraga },
+  const existingPelatih = await prisma.pelatih.findUnique({
+    where: { user_id: userPelatih.user_id },
+  });
+  if (!existingPelatih) {
+    await prisma.pelatih.create({
+      data: {
+        nama: "Pelatih Badminton",
+        cabor_id: cabors[0].cabor_id,
+        user_id: userPelatih.user_id,
+        pengalaman: 5,
+        lisensi: 4,
+        prestasi: 5,
+        biaya: 2,
+        status_verifikasi: "terverifikasi",
+      },
     });
-
-    let pelatih;
-    if (existing) {
-      pelatih = await prisma.pelatih.update({
-        where: { pelatih_id: existing.pelatih_id },
-        data: p,
-      });
-    } else {
-      pelatih = await prisma.pelatih.create({ data: p });
-    }
-
-    // NilaiPelatih: Pengalaman, Prestasi, Biaya (skala 1-5)
-    // Konversi nilai numerik ke skala 1-5
-    const pengalamanSkala =
-      p.pengalaman >= 8
-        ? 5
-        : p.pengalaman >= 6
-          ? 4
-          : p.pengalaman >= 4
-            ? 3
-            : p.pengalaman >= 2
-              ? 2
-              : 1;
-    const biayaSkala =
-      p.biaya <= 150000
-        ? 5
-        : p.biaya <= 250000
-          ? 4
-          : p.biaya <= 350000
-            ? 3
-            : p.biaya <= 450000
-              ? 2
-              : 1;
-    const prestasiSkala = p.prestasi.includes("SEA")
-      ? 5
-      : p.prestasi.includes("PON") || p.prestasi.includes("Provinsi")
-        ? 4
-        : p.prestasi.includes("Kabupaten") || p.prestasi.includes("Kota")
-          ? 3
-          : p.prestasi.includes("Lokal")
-            ? 2
-            : 1;
-
-    const nilaiList = [pengalamanSkala, prestasiSkala, biayaSkala];
-
-    for (let i = 0; i < kriteriaIds.length; i++) {
-      const existing = await prisma.nilaiPelatih.findFirst({
-        where: { pelatih_id: pelatih.pelatih_id, kriteria_id: kriteriaIds[i] },
-      });
-      if (existing) {
-        await prisma.nilaiPelatih.update({
-          where: { nilai_id: existing.nilai_id },
-          data: { nilai: nilaiList[i] },
-        });
-      } else {
-        await prisma.nilaiPelatih.create({
-          data: {
-            pelatih_id: pelatih.pelatih_id,
-            kriteria_id: kriteriaIds[i],
-            nilai: nilaiList[i],
-          },
-        });
-      }
-    }
-
-    console.log(`   ✓ ${p.nama.padEnd(18)} | ${p.cabang_olahraga}`);
   }
 
-  console.log("\nSeed selesai!");
-  console.log("─".repeat(40));
-  console.log("Akun tersedia:");
-  console.log("  Admin : admin@ukm.ac.id     / admin123");
-  console.log("  User  : mahasiswa@ukm.ac.id / user123");
+  // Pelatih tanpa user_id
+  await prisma.pelatih.createMany({
+    data: [
+      {
+        nama: "Pelatih Renang",
+        cabor_id: cabors[1].cabor_id,
+        pengalaman: 3,
+        lisensi: 3,
+        prestasi: 3,
+        biaya: 4,
+        status_verifikasi: "terverifikasi",
+      },
+      {
+        nama: "Pelatih Sepak Bola",
+        cabor_id: cabors[2].cabor_id,
+        pengalaman: 4,
+        lisensi: 5,
+        prestasi: 4,
+        biaya: 3,
+        status_verifikasi: "pending",
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  console.log("✅ Pelatih selesai");
+  console.log("🎉 Seed selesai!");
 }
 
 main()
   .catch((e) => {
-    console.error("Seed gagal:", e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
-    await pool.end();
   });

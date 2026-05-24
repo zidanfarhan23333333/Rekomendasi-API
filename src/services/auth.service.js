@@ -6,14 +6,24 @@ const jwtConfig = require("../config/jwt.js");
 
 class AuthService {
   async register(userData) {
-    const { nama, email, password, role } = userData;
+    const {
+      nama,
+      email,
+      password,
+      role,
+      pengalaman,
+      lisensi,
+      prestasi,
+      biaya,
+      cabor,
+    } = userData;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) throw new Error("Email already registered");
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    return prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         nama,
         email,
@@ -28,6 +38,37 @@ class AuthService {
         created_at: true,
       },
     });
+
+    if (role === "pelatih") {
+      const cabangOlahraga = cabor
+        ? await prisma.cabangOlahraga.findFirst({
+            where: { nama_cabor: { contains: cabor, mode: "insensitive" } },
+          })
+        : null;
+
+      const cabang =
+        cabangOlahraga || (await prisma.cabangOlahraga.findFirst());
+
+      if (!cabang) {
+        await prisma.user.delete({ where: { user_id: user.user_id } });
+        throw new Error("Belum ada cabang olahraga. Hubungi admin.");
+      }
+
+      await prisma.pelatih.create({
+        data: {
+          nama,
+          cabor_id: cabang.cabor_id,
+          user_id: user.user_id,
+          pengalaman: Number(pengalaman) || 1,
+          lisensi: Number(lisensi) || 1,
+          prestasi: Number(prestasi) || 1,
+          biaya: Number(biaya) || 1,
+          status_verifikasi: "pending",
+        },
+      });
+    }
+
+    return user;
   }
 
   async login(credentials) {
@@ -44,9 +85,6 @@ class AuthService {
 
       if (!isPasswordValid) throw new Error("Invalid email or password");
 
-      console.log("JWT SECRET:", jwtConfig.secret ? "ada" : "KOSONG");
-      console.log("JWT EXPIRES:", jwtConfig.expiresIn);
-
       const token = jwt.sign(
         { userId: user.user_id, email: user.email, role: user.role },
         jwtConfig.secret,
@@ -57,7 +95,6 @@ class AuthService {
       return { user: userWithoutPassword, token };
     } catch (error) {
       console.error("AUTH SERVICE LOGIN ERROR:", error.message);
-      console.error("AUTH SERVICE LOGIN STACK:", error.stack);
       throw error;
     }
   }

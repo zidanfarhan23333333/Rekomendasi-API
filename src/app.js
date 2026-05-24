@@ -14,6 +14,7 @@ const caborRoutes = require("./routes/cabor.routes.js");
 const authRoutes = require("./routes/auth.routes.js");
 const adminRoutes = require("./routes/admin.routes.js");
 const userRoutes = require("./routes/user.routes.js");
+const publicRoutes = require("./routes/public.routes.js");
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use("/api/cabor", caborRoutes);
 app.use("/auth", authRoutes); // ← tetap /auth sesuai frontend
 app.use("/api/admin", adminRoutes); // ← tambahan
 app.use("/api/user", userRoutes); // ← tambahan
+app.use("/api/public", publicRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

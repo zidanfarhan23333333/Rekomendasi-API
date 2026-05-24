@@ -12,7 +12,14 @@ async function tambahPelatih(body) {
   const { nama, cabor_id, pengalaman, lisensi, prestasi, biaya, user_id } =
     body;
 
-  if (!nama || !cabor_id || pengalaman == null || lisensi == null || prestasi == null || biaya == null) {
+  if (
+    !nama ||
+    !cabor_id ||
+    pengalaman == null ||
+    lisensi == null ||
+    prestasi == null ||
+    biaya == null
+  ) {
     throw createError(
       "VALIDATION",
       "nama, cabor_id, pengalaman, lisensi, prestasi, biaya wajib diisi",

@@ -8,10 +8,8 @@ function createError(code, message) {
   return err;
 }
 
-// ─── Bobot AHP (konsisten dengan admin.controller) ────────────────────────────
 const BOBOT = { pengalaman: 0.35, lisensi: 0.25, prestasi: 0.25, biaya: 0.15 };
 
-// ─── Helper: ambil pelatih by user_id FK ─────────────────────────────────────
 async function getPelatihByUserId(userId) {
   const pelatih = await prisma.pelatih.findUnique({
     where: { user_id: userId },
@@ -28,15 +26,12 @@ async function getPelatihByUserId(userId) {
   return pelatih;
 }
 
-// ─── GET /pelatih/my-profile ──────────────────────────────────────────────────
 async function getMyProfile(userId) {
   return getPelatihByUserId(userId);
 }
 
-// ─── PUT /pelatih/my-profile ──────────────────────────────────────────────────
 async function updateMyProfile(userId, payload) {
   const pelatih = await getPelatihByUserId(userId);
-
   const { nama, cabor_id, pengalaman, lisensi, prestasi, biaya } = payload;
 
   if (nama !== undefined && (typeof nama !== "string" || nama.trim() === "")) {
@@ -58,7 +53,6 @@ async function updateMyProfile(userId, payload) {
   });
 }
 
-// ─── GET /pelatih/my-stats ────────────────────────────────────────────────────
 async function getMyStats(userId) {
   const pelatih = await getPelatihByUserId(userId);
   const pid = pelatih.pelatih_id;
@@ -66,14 +60,12 @@ async function getMyStats(userId) {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  // Ambil semua data sekaligus
   const [totalBooking, bookingBulanIni, semuaPelatih, siswaUnik] =
     await Promise.all([
       prisma.pemesanan.count({ where: { pelatih_id: pid } }),
       prisma.pemesanan.count({
         where: { pelatih_id: pid, tanggal: { gte: startOfMonth } },
       }),
-      // Untuk hitung ranking: ambil semua pelatih terverifikasi
       prisma.pelatih.findMany({
         where: { status_verifikasi: "terverifikasi" },
         select: {
@@ -90,12 +82,11 @@ async function getMyStats(userId) {
       }),
     ]);
 
-  // Hitung skor AHP semua pelatih (sama persis dengan admin.controller)
   const max = {
-    pengalaman: Math.max(...semuaPelatih.map((p) => p.pengalaman)) || 1,
-    lisensi: Math.max(...semuaPelatih.map((p) => p.lisensi)) || 1,
-    prestasi: Math.max(...semuaPelatih.map((p) => p.prestasi)) || 1,
-    biaya: Math.max(...semuaPelatih.map((p) => p.biaya)) || 1,
+    pengalaman: Math.max(...semuaPelatih.map((p) => p.pengalaman), 1),
+    lisensi: Math.max(...semuaPelatih.map((p) => p.lisensi), 1),
+    prestasi: Math.max(...semuaPelatih.map((p) => p.prestasi), 1),
+    biaya: Math.max(...semuaPelatih.map((p) => p.biaya), 1),
   };
 
   const hitungSkor = (p) =>
@@ -115,13 +106,12 @@ async function getMyStats(userId) {
   return {
     totalBooking,
     bookingBulanIni,
-    pendapatan: 0, // Tidak ada kolom harga di Pemesanan
-    rating: 0, // Tidak ada tabel rating
+    pendapatan: 0,
+    rating: 0,
     totalSiswa: siswaUnik.length,
     ranking,
     skorAHP: parseFloat(skorSaya.toFixed(4)),
     statusVerifikasi: pelatih.status_verifikasi,
-    // Komponen per kriteria (untuk progress bar di halaman Status)
     skorKomponen: {
       pengalaman: parseFloat((pelatih.pengalaman / max.pengalaman).toFixed(4)),
       lisensi: parseFloat((pelatih.lisensi / max.lisensi).toFixed(4)),
@@ -135,7 +125,6 @@ async function getMyStats(userId) {
   };
 }
 
-// ─── GET /pelatih/bookings ────────────────────────────────────────────────────
 async function getMyBookings(userId, filter = {}) {
   const pelatih = await getPelatihByUserId(userId);
 
@@ -159,12 +148,10 @@ async function getMyBookings(userId, filter = {}) {
     status: b.status,
     tanggal: b.tanggal.toISOString().split("T")[0],
     jam: b.tanggal.toTimeString().slice(0, 5),
-    durasi: 1, // Tidak ada kolom durasi di schema
+    durasi: 1,
   }));
 }
 
-// ─── GET /pelatih/my-jadwal ───────────────────────────────────────────────────
-// Schema tidak punya tabel Jadwal → derive dari Pemesanan mendatang
 async function getMyJadwal(userId) {
   const pelatih = await getPelatihByUserId(userId);
 

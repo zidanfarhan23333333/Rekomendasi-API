@@ -19,7 +19,6 @@ function handleError(res, err, label) {
   return res.status(status).json({ error: err.message });
 }
 
-// GET /pelatih/my-profile
 const myProfile = async (req, res) => {
   try {
     const data = await getMyProfile(req.user.userId);
@@ -29,7 +28,6 @@ const myProfile = async (req, res) => {
   }
 };
 
-// PUT /pelatih/my-profile
 const updateProfile = async (req, res) => {
   try {
     const data = await updateMyProfile(req.user.userId, req.body);
@@ -39,7 +37,6 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// GET /pelatih/my-stats
 const myStats = async (req, res) => {
   try {
     const data = await getMyStats(req.user.userId);
@@ -49,7 +46,6 @@ const myStats = async (req, res) => {
   }
 };
 
-// GET /pelatih/bookings
 const myBookings = async (req, res) => {
   try {
     const data = await getMyBookings(req.user.userId, req.query);
@@ -59,7 +55,6 @@ const myBookings = async (req, res) => {
   }
 };
 
-// GET /pelatih/my-jadwal
 const myJadwal = async (req, res) => {
   try {
     const data = await getMyJadwal(req.user.userId);
