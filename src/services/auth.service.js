@@ -16,6 +16,12 @@ class AuthService {
       prestasi,
       biaya,
       cabor,
+      deskripsi,
+      spesialis,
+      domisili,
+      pengalaman_melatih,
+      harga_min,
+      harga_max,
     } = userData;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -24,12 +30,7 @@ class AuthService {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
-      data: {
-        nama,
-        email,
-        password: hashedPassword,
-        role: role || "user",
-      },
+      data: { nama, email, password: hashedPassword, role: role || "user" },
       select: {
         user_id: true,
         nama: true,
@@ -64,6 +65,12 @@ class AuthService {
           prestasi: Number(prestasi) || 1,
           biaya: Number(biaya) || 1,
           status_verifikasi: "pending",
+          deskripsi: deskripsi || null,
+          spesialis: spesialis || null,
+          domisili: domisili || null,
+          pengalaman_melatih: pengalaman_melatih || null,
+          harga_min: harga_min ? Number(harga_min) : null,
+          harga_max: harga_max ? Number(harga_max) : null,
         },
       });
     }
@@ -73,16 +80,11 @@ class AuthService {
 
   async login(credentials) {
     const { email, password } = credentials;
-
     try {
       const user = await prisma.user.findUnique({ where: { email } });
-      console.log("USER FOUND:", user ? user.email : "null");
-
       if (!user) throw new Error("Invalid email or password");
 
       const isPasswordValid = await bcrypt.compare(password, user.password);
-      console.log("PASSWORD VALID:", isPasswordValid);
-
       if (!isPasswordValid) throw new Error("Invalid email or password");
 
       const token = jwt.sign(
@@ -118,7 +120,6 @@ class AuthService {
         created_at: true,
       },
     });
-
     if (!user) throw new Error("User not found");
     return user;
   }

@@ -95,4 +95,27 @@ router.get("/bookings/:pelatihId", async (req, res) => {
   }
 });
 
+// Tambahkan di bawah route /bookings/:pelatihId, sebelum module.exports
+
+// GET /api/public/pelatih/:id/jadwal
+router.get("/pelatih/:id/jadwal", async (req, res) => {
+  try {
+    const pelatihId = Number(req.params.id);
+    if (isNaN(pelatihId)) return ApiResponse.error(res, "ID tidak valid");
+
+    const data = await prisma.jadwal.findMany({
+      where: {
+        pelatih_id: pelatihId,
+        status: "available",
+      },
+      orderBy: [{ hari: "asc" }, { jam_mulai: "asc" }],
+    });
+
+    return ApiResponse.success(res, data, "Jadwal retrieved");
+  } catch (error) {
+    console.error("public jadwal error:", error);
+    return ApiResponse.error(res, "Failed to retrieve jadwal");
+  }
+});
+
 module.exports = router;

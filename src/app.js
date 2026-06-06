@@ -15,6 +15,7 @@ const authRoutes = require("./routes/auth.routes.js");
 const adminRoutes = require("./routes/admin.routes.js");
 const userRoutes = require("./routes/user.routes.js");
 const publicRoutes = require("./routes/public.routes.js");
+const jadwalRoutes = require("./routes/jadwal.routes.js");
 
 const app = express();
 
@@ -32,11 +33,13 @@ app.use(bodyParser.json());
 
 app.use("/api/ahp", ahpRoutes);
 app.use("/api/rekomendasi", rekomendasiRoutes);
+app.use("/api/jadwal", jadwalRoutes); // ← ganti prefix jadi /api/jadwal
+app.use("/api/pelatih/jadwal", jadwalRoutes); // ← tetap ada untuk pelatih dashboard // ← HARUS di atas /api/pelatih
 app.use("/api/pelatih", pelatihRoutes);
 app.use("/api/cabor", caborRoutes);
-app.use("/auth", authRoutes); // ← tetap /auth sesuai frontend
-app.use("/api/admin", adminRoutes); // ← tambahan
-app.use("/api/user", userRoutes); // ← tambahan
+app.use("/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/user", userRoutes);
 app.use("/api/public", publicRoutes);
 
 app.get("/api/health", (req, res) => {

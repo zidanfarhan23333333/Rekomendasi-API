@@ -2,138 +2,195 @@
 
 const prisma = require("../config/database.js");
 
+const STATUS_VALID = ["pending", "terverifikasi", "ditolak"];
+
 function createError(code, message) {
   const err = new Error(message);
   err.code = code;
   return err;
 }
 
-async function tambahPelatih(body) {
-  const { nama, cabor_id, pengalaman, lisensi, prestasi, biaya, user_id } =
-    body;
+function validasiSkala(nilai, nama) {
+  if (
+    nilai === undefined ||
+    !Number.isInteger(Number(nilai)) ||
+    Number(nilai) < 1 ||
+    Number(nilai) > 5
+  ) {
+    throw createError("VALIDATION", `${nama} wajib dan harus angka bulat 1-5`);
+  }
+}
+
+function validasiPayload(payload) {
+  const { nama, cabor_id, pengalaman, lisensi, prestasi, biaya } = payload;
+
+  if (!nama || typeof nama !== "string" || nama.trim() === "") {
+    throw createError("VALIDATION", "nama wajib dan harus berisi teks");
+  }
 
   if (
-    !nama ||
-    !cabor_id ||
-    pengalaman == null ||
-    lisensi == null ||
-    prestasi == null ||
-    biaya == null
+    cabor_id === undefined ||
+    !Number.isInteger(Number(cabor_id)) ||
+    Number(cabor_id) < 1
   ) {
     throw createError(
       "VALIDATION",
-      "nama, cabor_id, pengalaman, lisensi, prestasi, biaya wajib diisi",
+      "cabor_id wajib dan harus angka bulat positif",
     );
   }
 
+  validasiSkala(pengalaman, "pengalaman");
+  validasiSkala(lisensi, "lisensi");
+  validasiSkala(prestasi, "prestasi");
+  validasiSkala(biaya, "biaya");
+}
+
+async function pastikanCabangAda(cabor_id) {
+  const cabang = await prisma.cabangOlahraga.findUnique({
+    where: { cabor_id },
+  });
+  if (!cabang) {
+    throw createError(
+      "NOT_FOUND",
+      `Cabang olahraga dengan id ${cabor_id} tidak ditemukan`,
+    );
+  }
+  return cabang;
+}
+
+const includeRelasi = {
+  cabang: { select: { nama_cabor: true } },
+  jadwal: {
+    where: { status: "available" },
+    orderBy: [{ hari: "asc" }, { jam_mulai: "asc" }],
+  },
+};
+
+async function tambahPelatih(payload) {
+  validasiPayload(payload);
+  await pastikanCabangAda(Number(payload.cabor_id));
+
   return prisma.pelatih.create({
     data: {
-      nama: String(nama).trim(),
-      cabor_id: Number(cabor_id),
-      pengalaman: Number(pengalaman),
-      lisensi: Number(lisensi),
-      prestasi: Number(prestasi),
-      biaya: Number(biaya),
+      nama: payload.nama.trim(),
+      cabor_id: Number(payload.cabor_id),
+      pengalaman: Number(payload.pengalaman),
+      lisensi: Number(payload.lisensi),
+      prestasi: Number(payload.prestasi),
+      biaya: Number(payload.biaya),
       status_verifikasi: "pending",
-      ...(user_id ? { user_id: Number(user_id) } : {}),
     },
-    include: { cabang: { select: { nama_cabor: true } } },
+    include: includeRelasi,
   });
 }
 
 async function dapatkanSemua(filter = {}) {
   const where = {};
-
-  if (filter.cabor_id) {
-    const id = Number(filter.cabor_id);
-    if (!Number.isInteger(id) || id < 1)
-      throw createError("VALIDATION", "cabor_id harus angka positif");
-    where.cabor_id = id;
-  }
-
-  if (filter.status_verifikasi) {
-    where.status_verifikasi = filter.status_verifikasi;
+  if (filter.cabor_id !== undefined) {
+    where.cabor_id = Number(filter.cabor_id);
   }
 
   return prisma.pelatih.findMany({
     where,
-    orderBy: { created_at: "desc" },
-    include: { cabang: { select: { nama_cabor: true } } },
+    orderBy: { pelatih_id: "asc" },
+    include: includeRelasi,
   });
 }
 
-async function dapatkanById(id) {
-  if (!Number.isInteger(id) || id < 1)
-    throw createError("VALIDATION", "id harus angka positif");
-
+async function dapatkanById(pelatihId) {
   const pelatih = await prisma.pelatih.findUnique({
-    where: { pelatih_id: id },
-    include: { cabang: { select: { nama_cabor: true } } },
+    where: { pelatih_id: pelatihId },
+    include: includeRelasi,
   });
 
-  if (!pelatih) throw createError("NOT_FOUND", "Pelatih tidak ditemukan");
+  if (!pelatih) {
+    throw createError(
+      "NOT_FOUND",
+      `Pelatih dengan id ${pelatihId} tidak ditemukan`,
+    );
+  }
 
   return pelatih;
 }
 
-async function perbaruiPelatih(id, body) {
-  if (!Number.isInteger(id) || id < 1)
-    throw createError("VALIDATION", "id harus angka positif");
-
-  const existing = await prisma.pelatih.findUnique({
-    where: { pelatih_id: id },
-  });
-  if (!existing) throw createError("NOT_FOUND", "Pelatih tidak ditemukan");
-
-  const data = {};
-  if (body.nama !== undefined) data.nama = String(body.nama).trim();
-  if (body.cabor_id !== undefined) data.cabor_id = Number(body.cabor_id);
-  if (body.pengalaman !== undefined) data.pengalaman = Number(body.pengalaman);
-  if (body.lisensi !== undefined) data.lisensi = Number(body.lisensi);
-  if (body.prestasi !== undefined) data.prestasi = Number(body.prestasi);
-  if (body.biaya !== undefined) data.biaya = Number(body.biaya);
-  if (body.status_verifikasi !== undefined)
-    data.status_verifikasi = body.status_verifikasi;
+async function perbaruiPelatih(pelatihId, payload) {
+  await dapatkanById(pelatihId);
+  validasiPayload(payload);
+  await pastikanCabangAda(Number(payload.cabor_id));
 
   return prisma.pelatih.update({
-    where: { pelatih_id: id },
-    data,
-    include: { cabang: { select: { nama_cabor: true } } },
+    where: { pelatih_id: pelatihId },
+    data: {
+      nama: payload.nama.trim(),
+      cabor_id: Number(payload.cabor_id),
+      pengalaman: Number(payload.pengalaman),
+      lisensi: Number(payload.lisensi),
+      prestasi: Number(payload.prestasi),
+      biaya: Number(payload.biaya),
+    },
+    include: includeRelasi,
   });
 }
 
-async function hapusPelatih(id) {
-  if (!Number.isInteger(id) || id < 1)
-    throw createError("VALIDATION", "id harus angka positif");
-
-  const existing = await prisma.pelatih.findUnique({
-    where: { pelatih_id: id },
+async function hapusPelatih(pelatihId) {
+  const pelatih = await prisma.pelatih.findUnique({
+    where: { pelatih_id: pelatihId },
+    include: {
+      nilai: true,
+      pemesanan: true,
+      hasilRekomendasi: true,
+    },
   });
-  if (!existing) throw createError("NOT_FOUND", "Pelatih tidak ditemukan");
 
-  return prisma.pelatih.delete({ where: { pelatih_id: id } });
+  if (!pelatih) {
+    throw createError(
+      "NOT_FOUND",
+      `Pelatih dengan id ${pelatihId} tidak ditemukan`,
+    );
+  }
+
+  if (pelatih.nilai && pelatih.nilai.length > 0) {
+    throw createError(
+      "IN_USE",
+      `Pelatih tidak dapat dihapus karena masih memiliki ${pelatih.nilai.length} nilai kriteria`,
+    );
+  }
+
+  if (pelatih.pemesanan && pelatih.pemesanan.length > 0) {
+    throw createError(
+      "IN_USE",
+      `Pelatih tidak dapat dihapus karena masih memiliki ${pelatih.pemesanan.length} pemesanan`,
+    );
+  }
+
+  if (pelatih.hasilRekomendasi && pelatih.hasilRekomendasi.length > 0) {
+    throw createError(
+      "IN_USE",
+      `Pelatih tidak dapat dihapus karena masih ada dalam ${pelatih.hasilRekomendasi.length} hasil rekomendasi`,
+    );
+  }
+
+  await prisma.pelatih.delete({
+    where: { pelatih_id: pelatihId },
+  });
+
+  return { pelatih_id: pelatihId };
 }
 
-async function verifikasiPelatih(id, status) {
-  if (!Number.isInteger(id) || id < 1)
-    throw createError("VALIDATION", "id harus angka positif");
-
-  const validStatus = ["terverifikasi", "ditolak", "pending"];
-  if (!status || !validStatus.includes(status))
+async function verifikasiPelatih(pelatihId, status) {
+  if (!STATUS_VALID.includes(status)) {
     throw createError(
       "VALIDATION",
-      "status harus 'terverifikasi', 'ditolak', atau 'pending'",
+      `status harus salah satu dari: ${STATUS_VALID.join(", ")}`,
     );
+  }
 
-  const existing = await prisma.pelatih.findUnique({
-    where: { pelatih_id: id },
-  });
-  if (!existing) throw createError("NOT_FOUND", "Pelatih tidak ditemukan");
+  await dapatkanById(pelatihId);
 
   return prisma.pelatih.update({
-    where: { pelatih_id: id },
+    where: { pelatih_id: pelatihId },
     data: { status_verifikasi: status },
-    include: { cabang: { select: { nama_cabor: true } } },
+    include: includeRelasi,
   });
 }
 

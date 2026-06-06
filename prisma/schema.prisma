@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,17 +6,19 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  user_id    Int      @id @default(autoincrement())
-  nama       String
-  email      String   @unique
-  password   String
-  role       String   // "admin" | "user"
-  created_at DateTime @default(now())
-  pelatihProfile   Pelatih?
 
+model User {
+  user_id        Int      @id @default(autoincrement())
+  nama           String
+  email          String   @unique
+  password       String
+  role           String
+  created_at     DateTime @default(now())
+
+  pelatihProfile   Pelatih?
   pemesanan        Pemesanan[]
   hasilRekomendasi HasilRekomendasi[]
+
   @@map("user")
 }
 
@@ -27,27 +28,52 @@ model CabangOlahraga {
 
   pelatih   Pelatih[]
   pemesanan Pemesanan[]
+
   @@map("cabangolahraga")
 }
 
 model Pelatih {
-  pelatih_id        Int      @id @default(autoincrement())
-  nama              String
-  cabor_id          Int
-  user_id           Int?     @unique   // ← tambah ini
-  pengalaman        Int
-  lisensi           Int
-  prestasi          Int
-  biaya             Int
-  status_verifikasi String
-  created_at        DateTime @default(now())
+  pelatih_id         Int      @id @default(autoincrement())
+  nama               String
+  cabor_id           Int
+  user_id            Int?     @unique
+  pengalaman         Int
+  lisensi            Int
+  prestasi           Int
+  biaya              Int
+  status_verifikasi  String   @default("pending")
+  created_at         DateTime @default(now())
+  deskripsi          String?
+  spesialis          String?
+  domisili           String?
+  pengalaman_melatih String?
+  harga_min          Int?
+  harga_max          Int?
 
-  cabang           CabangOlahraga    @relation(fields: [cabor_id], references: [cabor_id])
-  user             User?             @relation(fields: [user_id], references: [user_id])  // ← tambah ini
+  cabang           CabangOlahraga     @relation(fields: [cabor_id], references: [cabor_id])
+  user             User?              @relation(fields: [user_id], references: [user_id])
+  jadwal           Jadwal[]
   nilai            NilaiPelatih[]
   pemesanan        Pemesanan[]
   hasilRekomendasi HasilRekomendasi[]
+
   @@map("pelatih")
+}
+
+model Jadwal {
+  jadwal_id   Int      @id @default(autoincrement())
+  pelatih_id  Int
+  hari        String
+  jam_mulai   String
+  jam_selesai String
+  lokasi      String
+  status      String   @default("available")
+  tersedia    Boolean  @default(true)
+  created_at  DateTime @default(now())
+
+  pelatih Pelatih @relation(fields: [pelatih_id], references: [pelatih_id], onDelete: Cascade)
+
+  @@map("jadwal")
 }
 
 model Kriteria {
@@ -57,6 +83,7 @@ model Kriteria {
   tipe          String
 
   nilai NilaiPelatih[]
+
   @@map("kriteria")
 }
 
@@ -78,12 +105,14 @@ model Pemesanan {
   user_id      Int
   cabor_id     Int
   pelatih_id   Int?
-  status       String   // "pending"|"konfirmasi"|"dibatalkan"
+  status       String
   tanggal      DateTime @default(now())
+  catatan      String?  // ← tambahkan ini
 
   user    User           @relation(fields: [user_id], references: [user_id])
   cabang  CabangOlahraga @relation(fields: [cabor_id], references: [cabor_id])
   pelatih Pelatih?       @relation(fields: [pelatih_id], references: [pelatih_id])
+
   @@map("pemesanan")
 }
 
@@ -97,5 +126,6 @@ model HasilRekomendasi {
 
   user    User    @relation(fields: [user_id], references: [user_id])
   pelatih Pelatih @relation(fields: [pelatih_id], references: [pelatih_id])
+
   @@map("hasilrekomendasi")
 }
