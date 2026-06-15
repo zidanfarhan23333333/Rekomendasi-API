@@ -5,6 +5,7 @@ require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const path = require("path");
 
 const errorHandler = require("./middleware/error.handler.js");
 const ahpRoutes = require("./routes/ahp.routes.js");
@@ -16,6 +17,7 @@ const adminRoutes = require("./routes/admin.routes.js");
 const userRoutes = require("./routes/user.routes.js");
 const publicRoutes = require("./routes/public.routes.js");
 const jadwalRoutes = require("./routes/jadwal.routes.js");
+const pemesananRoutes = require("./routes/pemesanan.routes.js");
 
 const app = express();
 
@@ -31,16 +33,20 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+// ← Static files SEBELUM semua routes
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
 app.use("/api/ahp", ahpRoutes);
 app.use("/api/rekomendasi", rekomendasiRoutes);
-app.use("/api/jadwal", jadwalRoutes); // ← ganti prefix jadi /api/jadwal
-app.use("/api/pelatih/jadwal", jadwalRoutes); // ← tetap ada untuk pelatih dashboard // ← HARUS di atas /api/pelatih
+app.use("/api/jadwal", jadwalRoutes);
+app.use("/api/pelatih/jadwal", jadwalRoutes);
 app.use("/api/pelatih", pelatihRoutes);
 app.use("/api/cabor", caborRoutes);
 app.use("/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/public", publicRoutes);
+app.use("/api", pemesananRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

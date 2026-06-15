@@ -71,4 +71,11 @@ async function hapusJadwal(userId, jadwalId) {
   return prisma.jadwal.delete({ where: { jadwal_id: jadwalId } });
 }
 
-module.exports = { getJadwal, tambahJadwal, hapusJadwal };
+async function getJadwalPublik(pelatihId) {
+  return prisma.jadwal.findMany({
+    where: { pelatih_id: pelatihId },
+    orderBy: [{ hari: "asc" }, { jam_mulai: "asc" }],
+  });
+}
+
+module.exports = { getJadwal, tambahJadwal, hapusJadwal, getJadwalPublik };

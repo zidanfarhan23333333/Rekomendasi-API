@@ -16,5 +16,9 @@ router.patch(
   "/pelatih/:id/verify",
   adminController.verifyPelatih.bind(adminController),
 );
+router.patch(
+  "/bookings/:id/status",
+  adminController.updateBookingStatus.bind(adminController),
+);
 
 module.exports = router;

@@ -4,6 +4,7 @@ const {
   getJadwal,
   tambahJadwal,
   hapusJadwal,
+  getJadwalPublik,
 } = require("../services/jadwal.service.js");
 
 const CODE_TO_STATUS = { VALIDATION: 400, NOT_FOUND: 404, FORBIDDEN: 403 };
@@ -41,4 +42,18 @@ const deleteJadwal = async (req, res) => {
   }
 };
 
-module.exports = { getMyJadwal, postJadwal, deleteJadwal };
+const getJadwalByPelatihId = async (req, res) => {
+  try {
+    const data = await getJadwalPublik(Number(req.params.pelatih_id));
+    return res.status(200).json({ data });
+  } catch (err) {
+    return handleError(res, err, "getJadwalByPelatihId");
+  }
+};
+
+module.exports = {
+  getMyJadwal,
+  postJadwal,
+  deleteJadwal,
+  getJadwalByPelatihId,
+};

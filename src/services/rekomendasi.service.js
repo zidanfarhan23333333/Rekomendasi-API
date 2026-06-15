@@ -1,3 +1,5 @@
+// rekomendasi.service.js
+
 "use strict";
 
 const prisma = require("../config/database.js");
@@ -9,12 +11,8 @@ function mapPelatihKeNilai(p) {
 }
 
 async function dapatkanRekomendasi({ cabor_id, user_id }) {
-  // 1. Ambil pelatih
   const pelatihList = await prisma.pelatih.findMany({
-    where: {
-      cabor_id,
-      status_verifikasi: "terverifikasi",
-    },
+    where: { cabor_id, status_verifikasi: "terverifikasi" },
     select: {
       pelatih_id: true,
       nama: true,
@@ -31,16 +29,10 @@ async function dapatkanRekomendasi({ cabor_id, user_id }) {
     throw err;
   }
 
-  // 2. Hitung bobot AHP
   const ahpResult = hitungBobotAHP();
 
-  // ⚠️ Pastikan urutan:
-  // [pengalaman, lisensi, prestasi, biaya]
-
-  // 3. Hitung skor (AHP murni)
   const hasil = pelatihList.map((p) => {
     const nilai = mapPelatihKeNilai(p);
-
     const skor =
       nilai[0] * ahpResult.bobotAHP[0] +
       nilai[1] * ahpResult.bobotAHP[1] +
@@ -54,14 +46,11 @@ async function dapatkanRekomendasi({ cabor_id, user_id }) {
     };
   });
 
-  // 4. Ranking
   hasil.sort((a, b) => b.skor_akhir - a.skor_akhir);
-
   hasil.forEach((item, idx) => {
     item.peringkat = idx + 1;
   });
 
-  // 5. Simpan ke database
   await Promise.all(
     hasil.map((item) =>
       prisma.hasilRekomendasi.create({
@@ -75,7 +64,6 @@ async function dapatkanRekomendasi({ cabor_id, user_id }) {
     ),
   );
 
-  // 6. Metadata (untuk frontend / laporan)
   const meta = {
     ahp: {
       kriteria: KRITERIA.map((k, i) => ({
@@ -89,10 +77,7 @@ async function dapatkanRekomendasi({ cabor_id, user_id }) {
     },
   };
 
-  return {
-    meta,
-    rekomendasi: hasil,
-  };
+  return { meta, rekomendasi: hasil };
 }
 
 async function dapatkanRiwayat(user_id) {
@@ -101,16 +86,49 @@ async function dapatkanRiwayat(user_id) {
     orderBy: { tanggal: "desc" },
     include: {
       pelatih: {
-        select: {
-          nama: true,
-          cabor_id: true,
-        },
+        select: { nama: true, cabor_id: true },
       },
     },
   });
 }
 
-module.exports = {
-  dapatkanRekomendasi,
-  dapatkanRiwayat,
-};
+async function getRankingGlobal() {
+  const pelatihList = await prisma.pelatih.findMany({
+    where: { status_verifikasi: "terverifikasi" },
+    select: {
+      pelatih_id: true,
+      nama: true,
+      pengalaman: true,
+      lisensi: true,
+      prestasi: true,
+      biaya: true,
+      cabang: { select: { nama_cabor: true } },
+    },
+  });
+
+  if (pelatihList.length === 0) return [];
+
+  const { bobotAHP } = hitungBobotAHP();
+
+  const hasil = pelatihList
+    .map((p) => ({
+      pelatih_id: p.pelatih_id,
+      nama: p.nama,
+      cabor: p.cabang?.nama_cabor || "",
+      skor: parseFloat(
+        (
+          p.pengalaman * bobotAHP[0] +
+          p.lisensi * bobotAHP[1] +
+          p.prestasi * bobotAHP[2] +
+          p.biaya * bobotAHP[3]
+        ).toFixed(4),
+      ),
+    }))
+    .sort((a, b) => b.skor - a.skor)
+    .map((item, idx) => ({ ...item, peringkat: idx + 1 }));
+
+  return hasil;
+}
+
+// ✅ Hanya satu module.exports, lengkap dengan getRankingGlobal
+module.exports = { dapatkanRekomendasi, dapatkanRiwayat, getRankingGlobal };

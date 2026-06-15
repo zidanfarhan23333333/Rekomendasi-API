@@ -49,6 +49,7 @@ model Pelatih {
   pengalaman_melatih String?
   harga_min          Int?
   harga_max          Int?
+  foto               String?
 
   cabang           CabangOlahraga     @relation(fields: [cabor_id], references: [cabor_id])
   user             User?              @relation(fields: [user_id], references: [user_id])

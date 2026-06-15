@@ -55,4 +55,14 @@ const getRiwayat = async (req, res) => {
   }
 };
 
-module.exports = { postRekomendasi, getRiwayat };
+// rekomendasi.controller.js — tambah handler
+const getRankingGlobalHandler = async (req, res) => {
+  try {
+    const data = await getRankingGlobal();
+    return res.json({ data });
+  } catch (err) {
+    return res.status(500).json({ error: "Gagal mengambil ranking" });
+  }
+};
+
+module.exports = { postRekomendasi, getRiwayat, getRankingGlobalHandler };

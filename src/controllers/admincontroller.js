@@ -255,6 +255,45 @@ class AdminController {
       return ApiResponse.error(res, "Failed to update verification status");
     }
   }
+
+  async updateBookingStatus(req, res) {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      const pemesananId = parseInt(id);
+      if (isNaN(pemesananId)) {
+        return ApiResponse.badRequest(res, "ID pemesanan tidak valid");
+      }
+
+      const validStatus = ["konfirmasi", "dibatalkan", "pending"];
+      if (!status || !validStatus.includes(status)) {
+        return ApiResponse.badRequest(
+          res,
+          "Status harus konfirmasi, dibatalkan, atau pending",
+        );
+      }
+
+      const {
+        updateStatusPemesanan,
+      } = require("../services/pemesanan.service.js");
+      const data = await updateStatusPemesanan(pemesananId, status);
+
+      const pesan = {
+        konfirmasi: "Pemesanan dikonfirmasi dan email notifikasi terkirim",
+        dibatalkan: "Pemesanan ditolak dan email notifikasi terkirim",
+        pending: "Status dikembalikan ke pending",
+      };
+
+      return ApiResponse.success(res, data, pesan[status]);
+    } catch (error) {
+      if (error.code === "NOT_FOUND") {
+        return ApiResponse.notFound(res, error.message);
+      }
+      console.error("updateBookingStatus error:", error);
+      return ApiResponse.error(res, "Gagal update status booking");
+    }
+  }
 }
 
 module.exports = new AdminController();
