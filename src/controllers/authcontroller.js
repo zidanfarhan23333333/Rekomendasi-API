@@ -1,19 +1,32 @@
 "use strict";
 
-// HTTP request handlers for authentication
 const authService = require("../services/auth.service");
 const ApiResponse = require("../utils/response");
 
 class AuthController {
-  /**
-   * Register new user
-   * POST /auth/register
-   */
   async register(req, res) {
     try {
-      const { nama, email, password, role } = req.body;
+      // ✅ Ambil SEMUA field yang dikirim frontend, termasuk data pelatih
+      const {
+        nama,
+        email,
+        password,
+        role,
+        // field pelatih
+        cabor_id,
+        cabor,
+        pengalaman,
+        lisensi,
+        prestasi,
+        biaya,
+        deskripsi,
+        spesialis,
+        domisili,
+        pengalaman_melatih,
+        harga_min,
+        harga_max,
+      } = req.body;
 
-      // Validation
       if (!nama || !email || !password) {
         return ApiResponse.badRequest(
           res,
@@ -21,13 +34,11 @@ class AuthController {
         );
       }
 
-      // Email format validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return ApiResponse.badRequest(res, "Invalid email format");
       }
 
-      // Password strength validation (minimum 6 characters)
       if (password.length < 6) {
         return ApiResponse.badRequest(
           res,
@@ -35,7 +46,6 @@ class AuthController {
         );
       }
 
-      // Role validation
       const validRoles = ["admin", "pelatih", "user"];
       if (role && !validRoles.includes(role)) {
         return ApiResponse.badRequest(
@@ -44,8 +54,25 @@ class AuthController {
         );
       }
 
-      // Create user
-      const user = await authService.register({ nama, email, password, role });
+      // ✅ Teruskan semua field ke service
+      const user = await authService.register({
+        nama,
+        email,
+        password,
+        role,
+        cabor_id,
+        cabor,
+        pengalaman,
+        lisensi,
+        prestasi,
+        biaya,
+        deskripsi,
+        spesialis,
+        domisili,
+        pengalaman_melatih,
+        harga_min,
+        harga_max,
+      });
 
       return ApiResponse.created(res, user, "User registered successfully");
     } catch (error) {
@@ -57,22 +84,15 @@ class AuthController {
     }
   }
 
-  /**
-   * Login user
-   * POST /auth/login
-   */
   async login(req, res) {
     try {
       const { email, password } = req.body;
 
-      // Validation
       if (!email || !password) {
         return ApiResponse.badRequest(res, "Email and password are required");
       }
 
-      // Authenticate user
       const result = await authService.login({ email, password });
-
       return ApiResponse.success(res, result, "Login successful");
     } catch (error) {
       if (error.message === "Invalid email or password") {
@@ -83,10 +103,6 @@ class AuthController {
     }
   }
 
-  /**
-   * Get current user profile
-   * GET /auth/me
-   */
   async getProfile(req, res) {
     try {
       const user = await authService.getUserById(req.user.userId);

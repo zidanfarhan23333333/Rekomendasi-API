@@ -85,16 +85,40 @@ async function tambahPelatih(payload) {
 }
 
 async function dapatkanSemua(filter = {}) {
+  const { search = "", page = 1, limit = 6 } = filter;
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+
   const where = {};
   if (filter.cabor_id !== undefined) {
     where.cabor_id = Number(filter.cabor_id);
   }
+  if (search) {
+    where.OR = [
+      { nama: { contains: search, mode: "insensitive" } },
+      { cabang: { nama_cabor: { contains: search, mode: "insensitive" } } },
+    ];
+  }
 
-  return prisma.pelatih.findMany({
-    where,
-    orderBy: { pelatih_id: "asc" },
-    include: includeRelasi,
-  });
+  const [total, pelatih] = await Promise.all([
+    prisma.pelatih.count({ where }),
+    prisma.pelatih.findMany({
+      where,
+      skip,
+      take: parseInt(limit),
+      orderBy: { pelatih_id: "asc" },
+      include: includeRelasi,
+    }),
+  ]);
+
+  return {
+    pelatih,
+    pagination: {
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / parseInt(limit)),
+    },
+  };
 }
 
 async function dapatkanById(pelatihId) {
@@ -133,13 +157,9 @@ async function perbaruiPelatih(pelatihId, payload) {
 }
 
 async function hapusPelatih(pelatihId) {
+  // Cek pelatih ada
   const pelatih = await prisma.pelatih.findUnique({
     where: { pelatih_id: pelatihId },
-    include: {
-      nilai: true,
-      pemesanan: true,
-      hasilRekomendasi: true,
-    },
   });
 
   if (!pelatih) {
@@ -149,32 +169,21 @@ async function hapusPelatih(pelatihId) {
     );
   }
 
-  if (pelatih.nilai && pelatih.nilai.length > 0) {
-    throw createError(
-      "IN_USE",
-      `Pelatih tidak dapat dihapus karena masih memiliki ${pelatih.nilai.length} nilai kriteria`,
-    );
-  }
+  // ✅ Cascade delete: hapus semua relasi dulu sebelum hapus pelatih
+  await prisma.$transaction([
+    // 1. Hapus hasil rekomendasi
+    prisma.hasilRekomendasi.deleteMany({ where: { pelatih_id: pelatihId } }),
+    // 2. Hapus pemesanan
+    prisma.pemesanan.deleteMany({ where: { pelatih_id: pelatihId } }),
+    // 3. Hapus nilai kriteria
+    prisma.nilaiPelatih.deleteMany({ where: { pelatih_id: pelatihId } }),
+    // 4. Hapus jadwal
+    prisma.jadwal.deleteMany({ where: { pelatih_id: pelatihId } }),
+    // 5. Hapus pelatih
+    prisma.pelatih.delete({ where: { pelatih_id: pelatihId } }),
+  ]);
 
-  if (pelatih.pemesanan && pelatih.pemesanan.length > 0) {
-    throw createError(
-      "IN_USE",
-      `Pelatih tidak dapat dihapus karena masih memiliki ${pelatih.pemesanan.length} pemesanan`,
-    );
-  }
-
-  if (pelatih.hasilRekomendasi && pelatih.hasilRekomendasi.length > 0) {
-    throw createError(
-      "IN_USE",
-      `Pelatih tidak dapat dihapus karena masih ada dalam ${pelatih.hasilRekomendasi.length} hasil rekomendasi`,
-    );
-  }
-
-  await prisma.pelatih.delete({
-    where: { pelatih_id: pelatihId },
-  });
-
-  return { pelatih_id: pelatihId };
+  return { pelatih_id: pelatihId, message: "Pelatih berhasil dihapus" };
 }
 
 async function verifikasiPelatih(pelatihId, status) {

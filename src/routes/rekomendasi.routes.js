@@ -11,5 +11,5 @@ const {
 
 router.post("/", postRekomendasi);
 router.get("/riwayat/:id", getRiwayat);
-router.get("/ranking", getRankingGlobalHandler); // ← fixed path
+router.get("/ranking", getRankingGlobalHandler); 
 module.exports = router;

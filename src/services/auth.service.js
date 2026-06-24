@@ -11,11 +11,12 @@ class AuthService {
       email,
       password,
       role,
+      cabor_id, // ✅ terima cabor_id dari frontend
+      cabor, // fallback: nama cabor (jika cabor_id tidak ada)
       pengalaman,
       lisensi,
       prestasi,
       biaya,
-      cabor,
       deskripsi,
       spesialis,
       domisili,
@@ -41,14 +42,26 @@ class AuthService {
     });
 
     if (role === "pelatih") {
-      const cabangOlahraga = cabor
-        ? await prisma.cabangOlahraga.findFirst({
-            where: { nama_cabor: { contains: cabor, mode: "insensitive" } },
-          })
-        : null;
+      let cabang = null;
 
-      const cabang =
-        cabangOlahraga || (await prisma.cabangOlahraga.findFirst());
+      // ✅ Prioritas 1: pakai cabor_id langsung (lebih akurat)
+      if (cabor_id) {
+        cabang = await prisma.cabangOlahraga.findUnique({
+          where: { cabor_id: Number(cabor_id) },
+        });
+      }
+
+      // ✅ Prioritas 2: cari berdasarkan nama (fallback)
+      if (!cabang && cabor) {
+        cabang = await prisma.cabangOlahraga.findFirst({
+          where: { nama_cabor: { contains: cabor, mode: "insensitive" } },
+        });
+      }
+
+      // ✅ Prioritas 3: ambil cabor pertama (last resort)
+      if (!cabang) {
+        cabang = await prisma.cabangOlahraga.findFirst();
+      }
 
       if (!cabang) {
         await prisma.user.delete({ where: { user_id: user.user_id } });

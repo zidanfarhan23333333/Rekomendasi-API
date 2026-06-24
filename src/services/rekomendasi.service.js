@@ -1,5 +1,3 @@
-// rekomendasi.service.js
-
 "use strict";
 
 const prisma = require("../config/database.js");
@@ -110,6 +108,14 @@ async function getRankingGlobal() {
 
   const { bobotAHP } = hitungBobotAHP();
 
+  // Normalisasi: cari nilai max tiap kriteria
+  const max = {
+    pengalaman: Math.max(...pelatihList.map((p) => p.pengalaman)) || 1,
+    lisensi: Math.max(...pelatihList.map((p) => p.lisensi)) || 1,
+    prestasi: Math.max(...pelatihList.map((p) => p.prestasi)) || 1,
+    biaya: Math.max(...pelatihList.map((p) => p.biaya)) || 1,
+  };
+
   const hasil = pelatihList
     .map((p) => ({
       pelatih_id: p.pelatih_id,
@@ -117,10 +123,10 @@ async function getRankingGlobal() {
       cabor: p.cabang?.nama_cabor || "",
       skor: parseFloat(
         (
-          p.pengalaman * bobotAHP[0] +
-          p.lisensi * bobotAHP[1] +
-          p.prestasi * bobotAHP[2] +
-          p.biaya * bobotAHP[3]
+          (p.pengalaman / max.pengalaman) * bobotAHP[0] +
+          (p.lisensi / max.lisensi) * bobotAHP[1] +
+          (p.prestasi / max.prestasi) * bobotAHP[2] +
+          (p.biaya / max.biaya) * bobotAHP[3]
         ).toFixed(4),
       ),
     }))
@@ -130,5 +136,4 @@ async function getRankingGlobal() {
   return hasil;
 }
 
-// ✅ Hanya satu module.exports, lengkap dengan getRankingGlobal
 module.exports = { dapatkanRekomendasi, dapatkanRiwayat, getRankingGlobal };

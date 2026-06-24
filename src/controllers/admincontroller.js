@@ -2,6 +2,7 @@
 
 const prisma = require("../config/database");
 const ApiResponse = require("../utils/response");
+const { hitungBobotAHP } = require("../services/ahp.service.js");
 
 class AdminController {
   async getAllUsers(req, res) {
@@ -40,7 +41,6 @@ class AdminController {
         prisma.pelatih.count(),
         prisma.pelatih.count({ where: { status_verifikasi: "terverifikasi" } }),
         prisma.pemesanan.count(),
-        // Pakai "tanggal" sesuai schema Pemesanan (bukan created_at)
         prisma.pemesanan.count({ where: { tanggal: { gte: startOfMonth } } }),
         prisma.pelatih.count({ where: { status_verifikasi: "pending" } }),
       ]);
@@ -54,8 +54,8 @@ class AdminController {
           totalBooking,
           bookingBulanIni,
           pendingVerifikasi,
-          totalRevenue: 0, // Pemesanan tidak punya kolom harga
-          satisfactionRate: 0, // Belum ada tabel ulasan
+          totalRevenue: 0,
+          satisfactionRate: 0,
         },
         "Stats retrieved successfully",
       );
@@ -160,23 +160,30 @@ class AdminController {
         },
       });
 
+      // ✅ PERBAIKAN UTAMA: Gunakan hitungBobotAHP() agar bobot konsisten
+      //    dengan chart "Distribusi Bobot AHP" di frontend.
+      //    Urutan bobotAHP[] harus sesuai urutan kriteria di PAIRWISE_MATRIX:
+      //    index 0 = pengalaman, 1 = lisensi, 2 = prestasi, 3 = biaya
+      const { bobotAHP, CR, konsistensi } = hitungBobotAHP();
+
       const bobot = {
-        pengalaman: 0.35,
-        lisensi: 0.25,
-        prestasi: 0.25,
-        biaya: 0.15,
+        pengalaman: bobotAHP[0],
+        lisensi: bobotAHP[1],
+        prestasi: bobotAHP[2],
+        biaya: bobotAHP[3],
       };
 
-      const maxVal = (arr, key) =>
-        Math.max(...arr.map((p) => p[key] || 0)) || 1;
+      // Nilai maksimum tiap kriteria untuk normalisasi min-max
+      const maxVal = (key) => Math.max(...pelatih.map((p) => p[key] || 0)) || 1;
 
-      const maxPengalaman = maxVal(pelatih, "pengalaman");
-      const maxLisensi = maxVal(pelatih, "lisensi");
-      const maxPrestasi = maxVal(pelatih, "prestasi");
-      const maxBiaya = maxVal(pelatih, "biaya");
+      const maxPengalaman = maxVal("pengalaman");
+      const maxLisensi = maxVal("lisensi");
+      const maxPrestasi = maxVal("prestasi");
+      const maxBiaya = maxVal("biaya");
 
       const ranked = pelatih
         .map((p) => {
+          // Biaya bersifat cost (lebih kecil lebih baik) → gunakan (1 - normalized)
           const skorAHP =
             bobot.pengalaman * ((p.pengalaman || 0) / maxPengalaman) +
             bobot.lisensi * ((p.lisensi || 0) / maxLisensi) +
@@ -201,7 +208,9 @@ class AdminController {
         res,
         {
           pelatih: ranked,
-          bobot,
+          bobot, // bobot dari AHP — dipakai frontend untuk cards & chart
+          CR, // Consistency Ratio — opsional, bisa ditampilkan di UI
+          konsistensi, // "konsisten" / "tidak konsisten"
         },
         "Ranking retrieved successfully",
       );

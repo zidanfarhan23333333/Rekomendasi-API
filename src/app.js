@@ -39,7 +39,7 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/api/ahp", ahpRoutes);
 app.use("/api/rekomendasi", rekomendasiRoutes);
 app.use("/api/jadwal", jadwalRoutes);
-app.use("/api/pelatih/jadwal", jadwalRoutes);
+app.use("/api/pelatih/jadwal", jadwalRoutes); 
 app.use("/api/pelatih", pelatihRoutes);
 app.use("/api/cabor", caborRoutes);
 app.use("/auth", authRoutes);

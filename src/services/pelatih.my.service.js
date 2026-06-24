@@ -1,14 +1,13 @@
 "use strict";
 
 const prisma = require("../config/database.js");
+const { hitungBobotAHP } = require("../services/ahp.service"); // ✅ sama dengan adminController
 
 function createError(code, message) {
   const err = new Error(message);
   err.code = code;
   return err;
 }
-
-const BOBOT = { pengalaman: 0.35, lisensi: 0.25, prestasi: 0.25, biaya: 0.15 };
 
 async function getPelatihByUserId(userId) {
   const pelatih = await prisma.pelatih.findUnique({
@@ -32,7 +31,20 @@ async function getMyProfile(userId) {
 
 async function updateMyProfile(userId, payload) {
   const pelatih = await getPelatihByUserId(userId);
-  const { nama, cabor_id, pengalaman, lisensi, prestasi, biaya } = payload;
+  const {
+    nama,
+    cabor_id,
+    pengalaman,
+    lisensi,
+    prestasi,
+    biaya,
+    deskripsi,
+    spesialis,
+    domisili,
+    pengalaman_melatih,
+    harga_min,
+    harga_max,
+  } = payload;
 
   if (nama !== undefined && (typeof nama !== "string" || nama.trim() === "")) {
     throw createError("VALIDATION", "nama tidak boleh kosong");
@@ -45,6 +57,15 @@ async function updateMyProfile(userId, payload) {
   if (lisensi !== undefined) data.lisensi = Number(lisensi);
   if (prestasi !== undefined) data.prestasi = Number(prestasi);
   if (biaya !== undefined) data.biaya = Number(biaya);
+  if (deskripsi !== undefined) data.deskripsi = deskripsi || null;
+  if (spesialis !== undefined) data.spesialis = spesialis || null;
+  if (domisili !== undefined) data.domisili = domisili || null;
+  if (pengalaman_melatih !== undefined)
+    data.pengalaman_melatih = pengalaman_melatih || null;
+  if (harga_min !== undefined)
+    data.harga_min = harga_min ? Number(harga_min) : null;
+  if (harga_max !== undefined)
+    data.harga_max = harga_max ? Number(harga_max) : null;
 
   return prisma.pelatih.update({
     where: { pelatih_id: pelatih.pelatih_id },
@@ -82,18 +103,29 @@ async function getMyStats(userId) {
       }),
     ]);
 
-  const max = {
-    pengalaman: Math.max(...semuaPelatih.map((p) => p.pengalaman), 1),
-    lisensi: Math.max(...semuaPelatih.map((p) => p.lisensi), 1),
-    prestasi: Math.max(...semuaPelatih.map((p) => p.prestasi), 1),
-    biaya: Math.max(...semuaPelatih.map((p) => p.biaya), 1),
+  // ✅ Pakai bobot dari hitungBobotAHP() — konsisten dengan adminController & chart
+  const { bobotAHP } = hitungBobotAHP();
+  const bobot = {
+    pengalaman: bobotAHP[0],
+    lisensi: bobotAHP[1],
+    prestasi: bobotAHP[2],
+    biaya: bobotAHP[3],
   };
 
+  const maxVal = (key) => Math.max(...semuaPelatih.map((p) => p[key]), 1);
+  const max = {
+    pengalaman: maxVal("pengalaman"),
+    lisensi: maxVal("lisensi"),
+    prestasi: maxVal("prestasi"),
+    biaya: maxVal("biaya"),
+  };
+
+  // ✅ Biaya diinvert: lebih murah = lebih baik (sama dengan adminController)
   const hitungSkor = (p) =>
-    BOBOT.pengalaman * (p.pengalaman / max.pengalaman) +
-    BOBOT.lisensi * (p.lisensi / max.lisensi) +
-    BOBOT.prestasi * (p.prestasi / max.prestasi) +
-    BOBOT.biaya * (p.biaya / max.biaya);
+    bobot.pengalaman * (p.pengalaman / max.pengalaman) +
+    bobot.lisensi * (p.lisensi / max.lisensi) +
+    bobot.prestasi * (p.prestasi / max.prestasi) +
+    bobot.biaya * (1 - p.biaya / max.biaya);
 
   const skorSemua = semuaPelatih
     .map((p) => ({ pelatih_id: p.pelatih_id, skor: hitungSkor(p) }))
@@ -112,11 +144,20 @@ async function getMyStats(userId) {
     ranking,
     skorAHP: parseFloat(skorSaya.toFixed(4)),
     statusVerifikasi: pelatih.status_verifikasi,
+    // Komponen skor untuk progress bar (sudah terbobot)
     skorKomponen: {
-      pengalaman: parseFloat((pelatih.pengalaman / max.pengalaman).toFixed(4)),
-      lisensi: parseFloat((pelatih.lisensi / max.lisensi).toFixed(4)),
-      prestasi: parseFloat((pelatih.prestasi / max.prestasi).toFixed(4)),
-      biaya: parseFloat((pelatih.biaya / max.biaya).toFixed(4)),
+      pengalaman: parseFloat(
+        (bobot.pengalaman * (pelatih.pengalaman / max.pengalaman)).toFixed(4),
+      ),
+      lisensi: parseFloat(
+        (bobot.lisensi * (pelatih.lisensi / max.lisensi)).toFixed(4),
+      ),
+      prestasi: parseFloat(
+        (bobot.prestasi * (pelatih.prestasi / max.prestasi)).toFixed(4),
+      ),
+      biaya: parseFloat(
+        (bobot.biaya * (1 - pelatih.biaya / max.biaya)).toFixed(4),
+      ),
     },
     pengalaman: pelatih.pengalaman,
     lisensi: pelatih.lisensi,
