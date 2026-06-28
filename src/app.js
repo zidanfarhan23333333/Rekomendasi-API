@@ -30,6 +30,16 @@ app.use(
   }),
 );
 
+app.options(
+  "*",
+  cors({
+    origin: ["http://localhost:5173", "https://frontend-red-nu-66.vercel.app"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  }),
+);
+
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
