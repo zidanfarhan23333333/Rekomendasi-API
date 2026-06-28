@@ -1,17 +1,5 @@
-/**
- * Controller untuk Cabang Olahraga
- * File: cabor.controller.js
- *
- * Bertugas menangani request dan response,
- * validasi input dasar, dan memanggil service layer
- */
-
 const caborService = require("../services/cabor.service");
 
-/**
- * GET /api/cabor
- * Mengambil semua data cabang olahraga
- */
 exports.getAllCabor = async (req, res) => {
   try {
     const cabors = await caborService.getAllCabor();
