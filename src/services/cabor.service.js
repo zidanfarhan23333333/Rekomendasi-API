@@ -1,20 +1,4 @@
-/**
- * Service untuk Cabang Olahraga
- * File: cabor.service.js
- *
- * Bertugas menangani business logic dan interaksi dengan database
- * menggunakan Prisma Client
- */
-
-const { PrismaClient } = require("@prisma/client");
-
-// Buat instance Prisma Client
-// Gunakan global untuk menghindari multiple instances
-const prisma = global.prisma || new PrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  global.prisma = prisma;
-}
+const prisma = require("../config/database");
 
 /**
  * Mengambil semua cabang olahraga
