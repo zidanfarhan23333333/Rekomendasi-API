@@ -21,25 +21,25 @@ const pemesananRoutes = require("./routes/pemesanan.routes.js");
 
 const app = express();
 
-app.use(cors());
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "*");
-  res.setHeader("Access-Control-Allow-Headers", "*");
-  next();
-});
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://frontend-red-nu-66.vercel.app"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  }),
+);
 
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-// ← Static files SEBELUM semua routes
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.use("/api/ahp", ahpRoutes);
 app.use("/api/rekomendasi", rekomendasiRoutes);
 app.use("/api/jadwal", jadwalRoutes);
-app.use("/api/pelatih/jadwal", jadwalRoutes); 
+app.use("/api/pelatih/jadwal", jadwalRoutes);
 app.use("/api/pelatih", pelatihRoutes);
 app.use("/api/cabor", caborRoutes);
 app.use("/auth", authRoutes);
