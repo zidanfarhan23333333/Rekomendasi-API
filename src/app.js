@@ -31,7 +31,7 @@ app.use(
 );
 
 app.options(
-  "*",
+  "/(.*)",
   cors({
     origin: ["http://localhost:5173", "https://frontend-red-nu-66.vercel.app"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
