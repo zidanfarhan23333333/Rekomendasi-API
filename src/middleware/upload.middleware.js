@@ -4,19 +4,30 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-// Buat folder uploads kalau belum ada
-const uploadDir = "uploads/pelatih";
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+const baseUploadDir = path.join(__dirname, "../uploads");
+
+const folders = {
+  user: path.join(baseUploadDir, "user"),
+  pelatih: path.join(baseUploadDir, "pelatih"),
+};
+
+Object.values(folders).forEach((dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    const isUser = req.baseUrl.includes("/user");
+    const dir = isUser ? folders.user : folders.pelatih;
+    cb(null, dir);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    const nama = `pelatih-${Date.now()}${ext}`;
+    const isUser = req.baseUrl.includes("/user");
+    const prefix = isUser ? "user" : "pelatih";
+    const nama = `${prefix}-${Date.now()}${ext}`;
     cb(null, nama);
   },
 });
@@ -36,7 +47,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 2 * 1024 * 1024 }, // max 2MB
+  limits: { fileSize: 2 * 1024 * 1024 },
 });
 
 module.exports = upload;

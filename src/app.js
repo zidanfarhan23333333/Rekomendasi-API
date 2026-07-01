@@ -18,11 +18,28 @@ const userRoutes = require("./routes/user.routes.js");
 const publicRoutes = require("./routes/public.routes.js");
 const jadwalRoutes = require("./routes/jadwal.routes.js");
 const pemesananRoutes = require("./routes/pemesanan.routes.js");
+const notifikasiRoutes = require("./routes/notifikasi.routes.js");
+const userProfileRoutes = require("./routes/userProfile.routes.js");
 
 const app = express();
 
+// ── CORS Configuration ──
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://frontend-red-nu-66.vercel.app",
+  "https://curt.web.id",
+  "https://www.curt.web.id",
+];
+
 const corsOptions = {
-  origin: ["http://localhost:5173", "https://frontend-red-nu-66.vercel.app"],
+  origin: function (origin, callback) {
+    // origin bisa undefined kalau request dari Postman/server-to-server, izinkan
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: ${origin} tidak diizinkan`));
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
@@ -30,12 +47,22 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// ── Static files — HARUS di sini, sebelum semua middleware dan routes ──
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    next();
+  },
+  express.static(path.join(__dirname, "../uploads")),
+);
+
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
-
+// ── Routes ──
 app.use("/api/ahp", ahpRoutes);
 app.use("/api/rekomendasi", rekomendasiRoutes);
 app.use("/api/jadwal", jadwalRoutes);
@@ -47,6 +74,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api", pemesananRoutes);
+app.use("/api/notifikasi", notifikasiRoutes);
+app.use("/api/user", userProfileRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
