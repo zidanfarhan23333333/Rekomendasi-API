@@ -26,26 +26,13 @@ router.post(
         return res.status(400).json({ error: "File foto wajib diupload" });
       }
 
-      const fotoUrl = `/uploads/user/${req.file.filename}`;
+      // ✅ Cloudinary menyimpan URL di req.file.path, bukan filename
+      const fotoUrl = req.file.path;
+
       const prisma = require("../config/database");
 
-      const user = await prisma.user.findUnique({
-        where: { user_id: req.user.userId },
-      });
-
-      if (!user) {
-        return res.status(404).json({ error: "User tidak ditemukan" });
-      }
-
-      // Hapus foto lama kalau ada
-      if (user.foto) {
-        const fs = require("fs");
-        const oldPath = user.foto.replace("/uploads", "uploads");
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      }
-
       const updated = await prisma.user.update({
-        where: { user_id: user.user_id },
+        where: { user_id: req.user.userId },
         data: { foto: fotoUrl },
       });
 
