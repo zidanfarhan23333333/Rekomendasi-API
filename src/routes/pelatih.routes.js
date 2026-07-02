@@ -44,7 +44,9 @@ router.post(
         return res.status(400).json({ error: "File foto wajib diupload" });
       }
 
-      const fotoUrl = `/uploads/pelatih/${req.file.filename}`;
+      // ✅ Cloudinary — req.file.path sudah berisi URL penuh
+      const fotoUrl = req.file.path;
+
       const prisma = require("../config/database");
 
       const pelatih = await prisma.pelatih.findUnique({
@@ -57,11 +59,15 @@ router.post(
           .json({ error: "Profil pelatih tidak ditemukan" });
       }
 
-      // Hapus foto lama kalau ada
-      if (pelatih.foto) {
-        const fs = require("fs");
-        const oldPath = pelatih.foto.replace("/uploads", "uploads");
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      // Hapus foto lama di Cloudinary kalau ada
+      if (pelatih.foto && pelatih.foto.includes("cloudinary")) {
+        const { cloudinary } = require("../config/cloudinary");
+        const publicId = pelatih.foto
+          .split("/")
+          .slice(-2)
+          .join("/")
+          .split(".")[0];
+        await cloudinary.uploader.destroy(publicId).catch(() => {});
       }
 
       const updated = await prisma.pelatih.update({

@@ -23,9 +23,9 @@ const userProfileRoutes = require("./routes/userProfile.routes.js");
 
 const app = express();
 
-// ── CORS Configuration ──
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://localhost:3000",
   "https://frontend-red-nu-66.vercel.app",
   "https://curt.web.id",
   "https://www.curt.web.id",
@@ -33,7 +33,6 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // origin bisa undefined kalau request dari Postman/server-to-server, izinkan
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -43,11 +42,14 @@ const corsOptions = {
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
 };
 
+// Handle preflight untuk semua route
 app.use(cors(corsOptions));
 
-// ── Static files — HARUS di sini, sebelum semua middleware dan routes ──
+// Static files
 app.use(
   "/uploads",
   (req, res, next) => {
@@ -62,7 +64,7 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-// ── Routes ──
+// Routes
 app.use("/api/ahp", ahpRoutes);
 app.use("/api/rekomendasi", rekomendasiRoutes);
 app.use("/api/jadwal", jadwalRoutes);
