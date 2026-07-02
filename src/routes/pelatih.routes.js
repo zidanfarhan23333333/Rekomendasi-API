@@ -20,6 +20,7 @@ const {
   myStats,
   myBookings,
   myJadwal,
+  updateBookingStatus,
 } = require("../controllers/pelatihMyController");
 
 // ── SEMUA ROUTE DENGAN PATH STATIS HARUS DI ATAS /:id ─────────────
@@ -92,6 +93,11 @@ router.post("/", authenticate, postPelatih);
 router.get("/:id", getPelatihById);
 router.put("/:id", authenticate, putPelatih);
 router.delete("/:id", authenticate, deletePelatih);
-router.patch("/:id/verify", authenticate, patchVerifikasi);
+router.patch(
+  "/bookings/:id/status",
+  authenticate,
+  requireRole("pelatih"),
+  updateBookingStatus,
+);
 
 module.exports = router;

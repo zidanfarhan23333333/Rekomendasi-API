@@ -6,11 +6,13 @@ const {
   getMyStats,
   getMyBookings,
   getMyJadwal,
+  updateBookingStatusByPelatih,
 } = require("../services/pelatih.my.service.js");
 
 const CODE_TO_STATUS = {
   VALIDATION: 400,
   NOT_FOUND: 404,
+  FORBIDDEN: 403,
 };
 
 function handleError(res, err, label) {
@@ -63,6 +65,20 @@ const myJadwal = async (req, res) => {
     return handleError(res, err, "myJadwal");
   }
 };
+const updateBookingStatus = async (req, res) => {
+  try {
+    const pemesananId = Number(req.params.id);
+    const { status } = req.body;
+    const data = await updateBookingStatusByPelatih(
+      req.user.userId,
+      pemesananId,
+      status,
+    );
+    return res.status(200).json({ data, message: "Booking ditandai selesai" });
+  } catch (err) {
+    return handleError(res, err, "updateBookingStatus");
+  }
+};
 
 module.exports = {
   myProfile,
@@ -70,4 +86,5 @@ module.exports = {
   myStats,
   myBookings,
   myJadwal,
+  updateBookingStatus,
 };

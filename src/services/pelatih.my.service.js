@@ -222,10 +222,51 @@ async function getMyJadwal(userId) {
   }));
 }
 
+async function updateBookingStatusByPelatih(userId, pemesananId, status) {
+  const pelatih = await getPelatihByUserId(userId);
+
+  const ALLOWED_STATUS = ["selesai"];
+  if (!ALLOWED_STATUS.includes(status)) {
+    throw createError(
+      "VALIDATION",
+      `Status harus salah satu dari: ${ALLOWED_STATUS.join(", ")}`,
+    );
+  }
+
+  const pemesanan = await prisma.pemesanan.findUnique({
+    where: { pemesanan_id: pemesananId },
+  });
+
+  if (!pemesanan) {
+    throw createError("NOT_FOUND", "Booking tidak ditemukan");
+  }
+
+  if (pemesanan.pelatih_id !== pelatih.pelatih_id) {
+    throw createError("FORBIDDEN", "Anda tidak memiliki akses ke booking ini");
+  }
+
+  if (pemesanan.status !== "konfirmasi") {
+    throw createError(
+      "VALIDATION",
+      "Hanya booking berstatus konfirmasi yang bisa ditandai selesai",
+    );
+  }
+
+  return prisma.pemesanan.update({
+    where: { pemesanan_id: pemesananId },
+    data: { status: "selesai" },
+    include: {
+      user: { select: { nama: true, email: true } },
+      cabang: { select: { nama_cabor: true } },
+    },
+  });
+}
+
 module.exports = {
   getMyProfile,
   updateMyProfile,
   getMyStats,
   getMyBookings,
   getMyJadwal,
+  updateBookingStatusByPelatih,
 };
